@@ -136,7 +136,7 @@ class Rk9(discord.Client):
                 # other information is intact. we reconstruct the url ourself to side-step.
                 img_hash = post['file']['md5']
                 url = f'https://static1.e621.net/data/{img_hash[0:2]}/{img_hash[2:4]}/{img_hash}.{post['file']['ext']}'
-                description = post['description'][:50] + (post['description'][50:] and '..')
+                description = post['description'][:150] + (post['description'][150:] and '..')
                 embed = discord.Embed(title=f'#{post['id']}',
                     url=f'https://e621.net/posts/{post['id']}',
                     description=escape_markdown(description),
