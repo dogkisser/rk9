@@ -118,8 +118,8 @@ class Rk9(discord.Client):
             last_check = watch.last_check.replace(tzinfo=timezone.utc)
 
             latest_posts = await self.get_latest_posts(watch)
-            logging.debug(f'{watch.tags} yields {len(latest_posts)}')
-            for post in latest_posts['posts']:
+            logging.debug(f'{watch.tags} yields {len(latest_posts)}\n{latest_posts}')
+            for post in latest_posts:
                 posted = datetime.fromisoformat(post['created_at'])
 
                 if last_check > posted:
@@ -164,7 +164,7 @@ class Rk9(discord.Client):
             async with aiohttp.ClientSession(headers=headers) as session:
                 async with session.get(url) as response:
                     response = await response.json()
-                    return response
+                    return response['posts']
 
 intents = discord.Intents.default()
 client = Rk9(intents=intents)
