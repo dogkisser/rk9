@@ -142,7 +142,7 @@ class Rk9(discord.Client):
                     value=f'`{watch.tags}`',
                     inline=False)
                 embed.set_image(url=url)
-                embed.set_footer(text="/rk9/")
+                embed.set_footer(text="/rk9/ • 👎 to remove")
 
                 if author:
                     embed.set_author(name=author)
@@ -218,6 +218,14 @@ async def following(interaction: discord.Interaction):
     fmt = '\n'.join(fmt)
 
     await interaction.response.send_message(fmt)
+
+@client.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    if payload.emoji.name == '👎':
+        channel = await client.fetch_user(payload.user_id)
+        message = await channel.fetch_message(payload.message_id)
+
+        await message.delete()
 
 @client.tree.command()
 @is_owner()
