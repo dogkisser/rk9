@@ -127,6 +127,11 @@ class Rk9(discord.Client):
                 if not (channel := user.dm_channel):
                     channel = await user.create_dm()
 
+                logging.debug(f'Sending {post}')
+                # post['file']['url'] is null if the post is on the global blacklist, but all the
+                # other information is intact. we reconstruct the url ourself to side-step.
+                img_hash = post['file']['md5']
+                url = f'https://static1.e621.net/data/{img_hash[0:2]}/{img_hash[2:4]}/{img_hash}.{post['file']['ext']}'
                 description = post['description'][:50] + (post['description'][50:] and '..')
                 embed = discord.Embed(title=f'#{post['id']}',
                     url=f'https://e621.net/posts/{post['id']}',
@@ -136,7 +141,7 @@ class Rk9(discord.Client):
                 embed.add_field(name="Matched query",
                     value=f'`{watch.tags}`',
                     inline=False)
-                embed.set_image(url=post['file']['url'])
+                embed.set_image(url=url)
                 embed.set_footer(text="/rk9/")
 
                 if author:
