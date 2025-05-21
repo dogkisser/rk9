@@ -98,12 +98,8 @@ class Rk9(discord.Client):
     async def check_query(self, watch):
         while True:
             delta_ago = datetime.now() - CHECK_INTERVAL
-            if not (last_check := watch.last_check):
-                last_check = datetime.now()
-                watch.last_check = last_check
-                watch.save()
 
-            delay = max(0, (last_check - delta_ago).total_seconds())
+            delay = max(0, (watch.last_check - delta_ago).total_seconds())
 
             user = await self.fetch_user(watch.discord_id)
 
@@ -116,7 +112,7 @@ class Rk9(discord.Client):
                 posted = posted_tz.astimezone(
                     timezone.utc).replace(tzinfo=None)
 
-                if posted < last_check:
+                if posted < watch.last_check:
                     continue
 
                 author = ', '.join(post['tags']['artist'])
@@ -204,8 +200,7 @@ async def following(interaction: discord.Interaction):
 
     fmt = []
     for query in queries:
-        last_check = query.last_check if query.last_check else datetime.now()
-        next_check = (last_check + timedelta(minutes=30)).timestamp()
+        next_check = (query.last_check + timedelta(minutes=30)).timestamp()
         fmt.append(f'* `{query.tags}` next check: <t:{int(next_check)}:R>') 
     fmt = '\n'.join(fmt)
 

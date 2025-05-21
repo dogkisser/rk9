@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from peewee import *
 
 db = SqliteDatabase('rk9.sqlite3', pragmas={'journal_mode': 'wal'})
@@ -9,7 +11,7 @@ class BaseModel(Model):
 class WatchedTags(BaseModel):
     discord_id = BigIntegerField(index=True)
     tags = TextField()
-    last_check = DateTimeField(null=True, index=True)
+    last_check = DateTimeField(default=datetime.now(), index=True)
 
     class Meta:
         # UNIQUE
