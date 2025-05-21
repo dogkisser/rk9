@@ -41,37 +41,6 @@ def normalise_tags(tags: str | list[str]) -> str:
 
     return ' '.join(tag_list)
 
-class AddWatchModal(discord.ui.Modal, title='Watch'):
-    tags = discord.ui.TextInput(
-        label='Tags',
-        placeholder='loona_(helluva_boss) solo',
-        style=discord.TextStyle.long,
-    )
-
-    async def on_submit(self, interaction: discord.Interaction):
-        try:
-            normalised_tags = normalise_tags(self.tags.value)
-        except TagError as e:
-            await interaction.response.send_message(e, ephemeral=True)
-            return
-
-        watched = WatchedTags(
-            discord_id=interaction.user.id,
-            tags=normalised_tags,
-        )
-
-        try:
-            watched.save()
-            await interaction.response.send_message('Added', ephemeral=True)
-        except peewee.IntegrityError:
-            await interaction.response.send_message('You\'re already watching an identical query',
-                ephemeral=True)
-    
-    async def on_error(self, interaction: discord.Interaction, error: Exception):
-        await interaction.response.send_message(f'Internal error.', ephemeral=True)
-
-        traceback.print_exception(type(error), error, error.__traceback__)
-
 class UnfollowDropdown(discord.ui.Select):
     def __init__(self, queries, **kwargs):
         options = [discord.SelectOption(label=query) for query in queries]
@@ -193,9 +162,23 @@ async def on_ready():
     print(f'I\'m {client.user}')
 
 @client.tree.command()
-async def follow(interaction: discord.Interaction):
+async def follow(interaction: discord.Interaction, query: str):
     """Follow a new query"""
-    await interaction.response.send_modal(AddWatchModal())
+    try:
+        normalised_query = normalise_tags(query)
+
+        watched = WatchedTags(
+            discord_id=interaction.user.id,
+            tags=normalised_query,
+        )
+        watched.save()
+
+        await interaction.response.send_message('Added', ephemeral=True)
+    except TagError as e:
+        await interaction.response.send_message(e, ephemeral=True)
+    except peewee.IntegrityError:
+        await interaction.response.send_message('You\'re already watching an identical query',
+            ephemeral=True)
 
 @client.tree.command()
 async def unfollow(interaction: discord.Interaction):
