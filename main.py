@@ -12,7 +12,6 @@ import dotenv
 import aiohttp
 import discord
 from discord.utils import escape_markdown
-from discord.ext.commands import is_owner
 
 dotenv.load_dotenv()
 DEBUG = os.environ.get('RK9_DEBUG') is not None
@@ -227,8 +226,8 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 
         await message.delete()
 
+# TODO: Admin only!!
 @client.tree.command()
-@is_owner()
 async def sync(interaction: discord.Interaction):
     """Sync commands globally"""
     await client.tree.sync()
