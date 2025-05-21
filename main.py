@@ -14,6 +14,7 @@ import discord
 import discord.ext.commands
 from discord import app_commands
 from discord.utils import escape_markdown
+from discord.ext.commands import is_owner
 
 dotenv.load_dotenv()
 
@@ -209,5 +210,12 @@ async def following(interaction: discord.Interaction):
     fmt = '\n'.join(fmt)
 
     await interaction.response.send_message(fmt)
+
+@client.tree.command()
+@is_owner()
+async def sync(interaction: discord.Interaction):
+    """Sync commands globally"""
+    await client.tree.sync()
+    await interaction.response.send_message('Syncing')
 
 client.run(os.environ['RK9_DISCORD_TOKEN'])
