@@ -71,6 +71,10 @@ class UnfollowView(discord.ui.View):
         )
         query.execute()
 
+        for tags in self.unfollow_dropdown.values:
+            task_name = f'{interaction.user.id}:{tags}'
+            [task.cancel() for task in asyncio.all_tasks() if task.get_name() == task_name]
+
         await interaction.response.edit_message(content='Done', view=None)
 
 class Rk9(discord.Client):
@@ -95,7 +99,8 @@ class Rk9(discord.Client):
 
         watches = WatchedTags.select()
         for watch in watches:
-            self.loop.create_task(self.check_query(watch))
+            task_name = f'{watch.discord_id}:{watch.tags}'
+            self.loop.create_task(self.check_query(watch), name=task_name)
 
     async def check_query(self, watch):
         while True:
@@ -181,6 +186,9 @@ async def follow(interaction: discord.Interaction, query: str):
         )
         watched.save()
 
+        task_name = f'{watched.discord_id}:{watched.tags}'
+        client.loop.create_task(client.check_query(watched), name=task_name)
+
         await interaction.response.send_message('Added', ephemeral=True)
     except TagError as e:
         await interaction.response.send_message(e, ephemeral=True)
@@ -194,6 +202,10 @@ async def unfollow(interaction: discord.Interaction):
     queries = WatchedTags.select(WatchedTags.tags).where(
         WatchedTags.discord_id == interaction.user.id)
     queries = [q.tags for q in queries]
+
+    if not queries:
+        await interaction.response.send_message('You\'re not following any queries', ephemeral=True)
+        return
 
     view = UnfollowView(queries)
     await interaction.response.send_message(ephemeral=True, view=view)

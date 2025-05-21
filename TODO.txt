@@ -1,1 +1,2 @@
 - replace all the datetime timestamp stuff with an accessor/setter on the database field
+- maybe a discord.py check for not following any queries
