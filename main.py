@@ -2,7 +2,6 @@ import database
 from database import WatchedTags
 
 import os
-import traceback
 import string
 import asyncio
 import logging
@@ -12,9 +11,6 @@ import peewee
 import dotenv
 import aiohttp
 import discord
-import discord.ext.commands
-from discord import app_commands
-from discord.utils import escape_markdown
 from discord.ext.commands import is_owner
 
 dotenv.load_dotenv()
@@ -78,7 +74,7 @@ class UnfollowView(discord.ui.View):
 class Rk9(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
+        self.tree = discord.app_commands.CommandTree(self)
 
         self.db = database.db
         self.db.connect()
