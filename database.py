@@ -11,7 +11,7 @@ class BaseModel(Model):
 class WatchedTags(BaseModel):
     discord_id = BigIntegerField(index=True)
     tags = TextField()
-    last_check = DateTimeField(default=datetime.now(), index=True)
+    last_check = DateTimeField(index=True)
 
     class Meta:
         # UNIQUE

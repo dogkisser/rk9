@@ -11,13 +11,16 @@ import peewee
 import dotenv
 import aiohttp
 import discord
+from discord.utils import escape_markdown
 from discord.ext.commands import is_owner
 
 dotenv.load_dotenv()
-discord.utils.setup_logging()
+DEBUG = os.environ.get('RK9_DEBUG') is not None
+
+discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
 MY_GUILD = discord.Object(id=os.environ['RK9_DEBUG_GUILD'])
-CHECK_INTERVAL = timedelta(minutes=10)
+CHECK_INTERVAL = timedelta(minutes=2 if DEBUG else 15)
 
 class TagError(ValueError):
     pass
@@ -97,25 +100,26 @@ class Rk9(discord.Client):
 
     async def check_query(self, watch):
         while True:
-            delta_ago = datetime.now() - CHECK_INTERVAL
+            delta_ago = datetime.now(timezone.utc) - CHECK_INTERVAL
+            last_check = watch.last_check.replace(tzinfo=timezone.utc)
 
-            delay = max(0, (watch.last_check - delta_ago).total_seconds())
+            delay = max(0, (last_check - delta_ago).total_seconds())
             await asyncio.sleep(delay)
 
-            logging.info(f'Running check for {watch}')
+            logging.info(f'Running check for {watch.discord_id}:{watch.tags}')
             await self._check_query(watch)
         
     async def _check_query(self, watch):
             user = await self.fetch_user(watch.discord_id)
+            last_check = watch.last_check.replace(tzinfo=timezone.utc)
 
             latest_posts = await self.get_latest_posts(watch)
+            logging.debug(f'{watch.tags} yields {len(latest_posts)}')
             for post in latest_posts['posts']:
-                posted_tz = datetime.fromisoformat(post['created_at'])
-                # convert to UTC then remove the timezone information.
-                posted = posted_tz.astimezone(
-                    timezone.utc).replace(tzinfo=None)
+                posted = datetime.fromisoformat(post['created_at'])
 
-                if watch.last_check > posted:
+                if last_check > posted:
+                    logging.debug(f'lc>p {last_check} > {posted}')
                     continue
 
                 author = ', '.join(post['tags']['artist'])
@@ -123,13 +127,14 @@ class Rk9(discord.Client):
                 if not (channel := user.dm_channel):
                     channel = await user.create_dm()
 
+                description = post['description'][:50] + (post['description'][50:] and '..')
                 embed = discord.Embed(title=f'#{post['id']}',
                     url=f'https://e621.net/posts/{post['id']}',
-                    description=post['description'][:50] + (post['description'][50:] and '..'),
+                    description=escape_markdown(description),
                     colour=0x1f2f56,
-                    timestamp=posted_tz)
+                    timestamp=posted)
                 embed.add_field(name="Matched query",
-                    value=watch.tags,
+                    value=f'`{watch.tags}`',
                     inline=False)
                 embed.set_image(url=post['file']['url'])
                 embed.set_footer(text="/rk9/")
@@ -139,7 +144,7 @@ class Rk9(discord.Client):
 
                 await channel.send(embed=embed)
 
-            watch.last_check = datetime.now()
+            watch.last_check = datetime.now(timezone.utc).replace(tzinfo=None)
             watch.save()
 
     async def get_latest_posts(self, watch):
@@ -168,6 +173,7 @@ async def follow(interaction: discord.Interaction, query: str):
         watched = WatchedTags(
             discord_id=interaction.user.id,
             tags=normalised_query,
+            last_check=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         watched.save()
 
@@ -201,8 +207,9 @@ async def following(interaction: discord.Interaction):
 
     fmt = []
     for query in queries:
-        next_check = (query.last_check + CHECK_INTERVAL).timestamp()
-        fmt.append(f'* `{query.tags}` next check: <t:{int(next_check)}:R>') 
+        last_check = query.last_check.replace(tzinfo=timezone.utc)
+        next_check = (last_check + CHECK_INTERVAL).timestamp()
+        fmt.append(f'* `{query.tags}` next check est. <t:{int(next_check)}:R>') 
     fmt = '\n'.join(fmt)
 
     await interaction.response.send_message(fmt)
