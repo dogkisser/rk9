@@ -102,12 +102,14 @@ class Rk9(discord.Client):
             delay = max(0, (watch.last_check - delta_ago).total_seconds())
             await asyncio.sleep(delay)
 
+            logging.info(f'Running check for {watch}')
             await self._check_query(watch)
         
     async def _check_query(self, watch):
             user = await self.fetch_user(watch.discord_id)
 
             latest_posts = await self.get_latest_posts(watch)
+            logging.info(f'{len(latest_posts)} new posts for {watch}')
             for post in latest_posts['posts']:
                 posted_tz = datetime.fromisoformat(post['created_at'])
                 # convert to UTC then remove the timezone information.
