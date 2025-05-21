@@ -109,14 +109,13 @@ class Rk9(discord.Client):
             user = await self.fetch_user(watch.discord_id)
 
             latest_posts = await self.get_latest_posts(watch)
-            logging.info(f'{len(latest_posts)} new posts for {watch}')
             for post in latest_posts['posts']:
                 posted_tz = datetime.fromisoformat(post['created_at'])
                 # convert to UTC then remove the timezone information.
                 posted = posted_tz.astimezone(
                     timezone.utc).replace(tzinfo=None)
 
-                if posted < watch.last_check:
+                if watch.last_check > posted:
                     continue
 
                 author = ', '.join(post['tags']['artist'])
