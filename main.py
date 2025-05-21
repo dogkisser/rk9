@@ -5,6 +5,7 @@ import os
 import traceback
 import string
 import asyncio
+import logging
 from datetime import *
 
 import peewee
@@ -17,9 +18,10 @@ from discord.utils import escape_markdown
 from discord.ext.commands import is_owner
 
 dotenv.load_dotenv()
+discord.utils.setup_logging()
 
 MY_GUILD = discord.Object(id=os.environ['RK9_DEBUG_GUILD'])
-CHECK_INTERVAL = timedelta(minutes=15)
+CHECK_INTERVAL = timedelta(minutes=10)
 
 class TagError(ValueError):
     pass
@@ -85,6 +87,8 @@ class Rk9(discord.Client):
         # Used to limit the number of concurrent requests to the e621 API.
         # e6's rate limit strictly is two requests per second, this is a bit of a hack that should
         # roughly work. May require fiddling.
+        # possible idea: sleep at the end of the api request while still holding the semaphore for
+        # ~500ms
         self.e6_api_semaphore = asyncio.Semaphore(2)
 
     async def setup_hook(self):
@@ -100,15 +104,17 @@ class Rk9(discord.Client):
             delta_ago = datetime.now() - CHECK_INTERVAL
 
             delay = max(0, (watch.last_check - delta_ago).total_seconds())
+            await asyncio.sleep(delay)
 
+            await self._check_query(watch)
+        
+    async def _check_query(self, watch):
             user = await self.fetch_user(watch.discord_id)
-
-            # await asyncio.sleep(delay)
 
             latest_posts = await self.get_latest_posts(watch)
             for post in latest_posts['posts']:
-                # convert to UTC then remove the timezone information.
                 posted_tz = datetime.fromisoformat(post['created_at'])
+                # convert to UTC then remove the timezone information.
                 posted = posted_tz.astimezone(
                     timezone.utc).replace(tzinfo=None)
 
@@ -139,8 +145,6 @@ class Rk9(discord.Client):
             watch.last_check = datetime.now()
             watch.save()
 
-            await asyncio.sleep(delay)
-
     async def get_latest_posts(self, watch):
         headers = {'user-agent': 'github.com/dogkisser/rk9'}
         url = f'https://e621.net/posts.json?tags={watch.tags} date:day'
@@ -156,7 +160,7 @@ client = Rk9(intents=intents)
 
 @client.event
 async def on_ready():
-    print(f'I\'m {client.user}')
+    logging.info(f'I\'m {client.user}')
 
 @client.tree.command()
 async def follow(interaction: discord.Interaction, query: str):
@@ -200,7 +204,7 @@ async def following(interaction: discord.Interaction):
 
     fmt = []
     for query in queries:
-        next_check = (query.last_check + timedelta(minutes=30)).timestamp()
+        next_check = (query.last_check + CHECK_INTERVAL).timestamp()
         fmt.append(f'* `{query.tags}` next check: <t:{int(next_check)}:R>') 
     fmt = '\n'.join(fmt)
 
