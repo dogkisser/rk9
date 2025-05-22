@@ -15,11 +15,11 @@ from discord.utils import escape_markdown
 
 dotenv.load_dotenv()
 DEBUG = os.environ.get('RK9_DEBUG') is not None
+CHECK_INTERVAL = timedelta(minutes=int(os.environ.get('RK9_CHECK_INTERVAL', 15)))
 
 discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
 MY_GUILD = discord.Object(id=os.environ['RK9_DEBUG_GUILD'])
-CHECK_INTERVAL = timedelta(minutes=2 if DEBUG else 15)
 
 class TagError(ValueError):
     pass
