@@ -24,23 +24,12 @@ CHECK_INTERVAL = timedelta(minutes=2 if DEBUG else 15)
 class TagError(ValueError):
     pass
 
-def normalise_tags(tags: str | list[str]) -> str:
+def normalise_tags(tags: str) -> str:
     """Normalises a tag string or list of tags into a tag string"""
+    if not all(c in string.printable for c in tags):
+        raise TagError('tags contain characters disallowed by e621')
 
-    if isinstance(tags, str):
-        tags = tags.split()
-    tag_list = list(set(map(str.lower, tags)))
-    tag_list.sort()
-    # Managed by the bot
-    tag_list = [tag for tag in tag_list if not tag.startswith(('order:', 'date:'))]
-
-    # https://e621.net/help/tags
-    # "Tags may only contain English letters, numbers, and some symbols."
-    for tag in tag_list:
-        if not all(c in string.printable for c in tag):
-            raise TagError('tags contain characters disallowed by e621')
-
-    return ' '.join(tag_list)
+    return tags.lower()
 
 class UnfollowDropdown(discord.ui.Select):
     def __init__(self, queries, **kwargs):
@@ -135,7 +124,10 @@ class Rk9(discord.Client):
                 # post['file']['url'] is null if the post is on the global blacklist, but all the
                 # other information is intact. we reconstruct the url ourself to side-step.
                 img_hash = post['file']['md5']
-                url = f'https://static1.e621.net/data/{img_hash[0:2]}/{img_hash[2:4]}/{img_hash}.{post['file']['ext']}'
+                # try to use the sample if it exists, discord can't embed videos
+                data_seg = "/data/sample/" if post['sample']['has'] else "/data/"
+                ext = "jpg" if post['sample']['has'] else post['file']['ext']
+                url = f'https://static1.e621.net{data_seg}{img_hash[0:2]}/{img_hash[2:4]}/{img_hash}.{ext}'
                 description = post['description'][:150] + (post['description'][150:] and '..')
                 embed = discord.Embed(title=f'#{post['id']}',
                     url=f'https://e621.net/posts/{post['id']}',
@@ -147,6 +139,9 @@ class Rk9(discord.Client):
                     inline=False)
                 embed.set_image(url=url)
                 embed.set_footer(text="/rk9/ • 👎 to remove")
+
+                if post['sample']['has'] in ['webm', 'mp4']:
+                    embed.add_field(name=":play_pause: Animated", value="", inline=False)
 
                 if author:
                     embed.set_author(name=author)
@@ -230,6 +225,7 @@ async def following(interaction: discord.Interaction):
 
     await interaction.response.send_message(fmt)
 
+# TODO: probably should check if the reacted message is an image or just a random message
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     if payload.emoji.name == '👎':
