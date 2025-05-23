@@ -7,10 +7,11 @@ services:
       # Your Discord bot's token
       RK9_DISCORD_TOKEN: ""
 
-      # Optional configuration:
+      # Optional configuration (defaults specified):
+
       # How often, in minutes, e621 is queried for new posts.
-      #RK9_CHECK_INTERVAL: 15
+      RK9_CHECK_INTERVAL: 15
 
     volumes:
       # Where /rk9/ should store data.
-      - "./data:/data"
+      - "./rk9-data:/data"
