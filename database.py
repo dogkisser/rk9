@@ -1,10 +1,12 @@
 from peewee import SqliteDatabase, Model, BigIntegerField, TextField, DateTimeField
 
-db = SqliteDatabase('rk9.sqlite3', pragmas={'journal_mode': 'wal'})
+db = SqliteDatabase("rk9.sqlite3", pragmas={"journal_mode": "wal"})
+
 
 class BaseModel(Model):
     class Meta:
         database = db
+
 
 class WatchedTags(BaseModel):
     discord_id = BigIntegerField(index=True)
@@ -13,9 +15,8 @@ class WatchedTags(BaseModel):
 
     class Meta:
         # UNIQUE
-        indexes = (
-            (('discord_id', 'tags'), True),
-        )
+        indexes = ((("discord_id", "tags"), True),)
+
 
 class PrefixTags(BaseModel):
     discord_id = BigIntegerField(index=True, unique=True)
