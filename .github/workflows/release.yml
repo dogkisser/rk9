@@ -3,20 +3,25 @@ name: release
 on:
   push:
     paths:
-      - 'pyproject.toml'
+      - pyproject.toml
 
 jobs:
   create-release:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
-      - run: sed -n 's/^version *= *"\(.*\)"/RK9_VER=\1/p' pyproject.toml >> $GITHUB_ENV
+      - uses: actions/checkout@v2
+
+      - id: parse-version
+        run: sed -n 's/^version *= *"\(.*\)"/version=\1/p' pyproject.toml >> "$GITHUB_OUTPUT"
     
       - uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${RK9_VER}
-          release_name: v${RK9_VER}
-          draft: false
+          tag_name: v${{ steps.parse-version.outputs.version }}
+          release_name: v${{ steps.parse-version.outputs.version }}
           prerelease: true
