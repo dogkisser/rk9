@@ -1,7 +1,11 @@
+#!/usr/bin/env python3
 import argparse
 import sqlite3
 import os
 import sys
+
+DATA_DIR = os.environ["RK9_DATA_DIR"]
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -17,7 +21,7 @@ def main():
     args = parse_args()
 
     if args.command == "backup":
-        live_db = sqlite3.connect("./data/rk9.sqlite3")
+        live_db = sqlite3.connect(f"{DATA_DIR}/rk9.sqlite3")
 
         if args.PATH == "-":
             db_bytes = live_db.serialize()

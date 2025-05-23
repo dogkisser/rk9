@@ -1,6 +1,13 @@
+import os
+
+import dotenv
 from peewee import SqliteDatabase, Model, BigIntegerField, TextField, DateTimeField
 
-db = SqliteDatabase("data/rk9.sqlite3", pragmas={"journal_mode": "wal"})
+dotenv.load_dotenv()
+
+DATA_DIR = os.environ["RK9_DATA_DIR"]
+
+db = SqliteDatabase(f"{DATA_DIR}/rk9.sqlite3", pragmas={"journal_mode": "wal"})
 
 
 class BaseModel(Model):

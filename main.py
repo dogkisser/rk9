@@ -16,7 +16,7 @@ from discord.utils import escape_markdown
 dotenv.load_dotenv()
 DEBUG = os.environ.get("RK9_DEBUG") is not None
 CHECK_INTERVAL = timedelta(minutes=int(os.environ.get("RK9_CHECK_INTERVAL", 15)))
-MY_GUILD = discord.Object(id=os.environ["RK9_DEBUG_GUILD"])
+DEBUG_GUILD = discord.Object(id=id) if (id := os.environ.get("RK9_DEBUG_GUILD")) else None
 
 discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
@@ -94,8 +94,9 @@ class Rk9(discord.Client):
         self.e6_api_semaphore = asyncio.Semaphore(2)
 
     async def setup_hook(self):
-        self.tree.copy_global_to(guild=MY_GUILD)
-        await self.tree.sync(guild=MY_GUILD)
+        if DEBUG_GUILD:
+            self.tree.copy_global_to(guild=DEBUG_GUILD)
+            await self.tree.sync(guild=DEBUG_GUILD)
 
         watches = WatchedTags.select()
         for watch in watches:
