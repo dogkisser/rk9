@@ -8,8 +8,8 @@ services:
     environment:
       # Your Discord bot's token
       RK9_DISCORD_TOKEN: ""
-      # How often, in minutes, e621 is queried for new posts
-      RK9_CHECK_INTERVAL: 15
+      # How often, in minutes, e621 is queried for new posts. The default is 15.
+      #RK9_CHECK_INTERVAL: 15
 
     volumes:
       # Where /rk9/ should store data.
