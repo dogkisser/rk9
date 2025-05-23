@@ -253,6 +253,6 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 async def sync(interaction: discord.Interaction):
     """Sync commands globally"""
     await client.tree.sync()
-    await interaction.response.send_message('Syncing')
+    await interaction.response.send_message('Syncing', ephemeral=True)
 
 client.run(os.environ['RK9_DISCORD_TOKEN'])
