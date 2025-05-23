@@ -1,6 +1,8 @@
 services:
   rk9:
-    image: ghcr.io/dogkisser/rk9:latest
+    build:
+      context: .
+    # image: ghcr.io/dogkisser/rk9:latest
     container_name: rk9
 
     environment:
