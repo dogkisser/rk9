@@ -13,10 +13,12 @@
 
 ## Running
 
+First create a [Discord bot account](https://discordpy.readthedocs.io/en/stable/discord.html).
+
 ### Docker
 
-* Clone or download a copy of the repo
-* Put your bot's Discord token in `docker-compose.yml`
+* Download the example [`docker-compose.yml`](docker-compose.yml)
+* Paste your Discord bot's token on the `RK9_DISCORD_TOKEN` line
 * Run `docker compose up -d`
 
 ### uv
