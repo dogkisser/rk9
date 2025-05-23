@@ -1,11 +1,11 @@
 import database
-from database import *
+from database import WatchedTags, PrefixTags
 
 import os
 import string
 import asyncio
 import logging
-from datetime import *
+from datetime import datetime, timezone, timedelta
 
 import peewee
 import dotenv
@@ -36,7 +36,8 @@ class UnfollowDropdown(discord.ui.Select):
     def __init__(self, queries, **kwargs):
         options = [discord.SelectOption(label=query[:98] + (query[98:] and '..'),
             value=str(i)) for (i, query) in enumerate(queries)]
-        super().__init__(placeholder='Select query', **kwargs, max_values=len(options), options=options)
+        super().__init__(placeholder='Select query', **kwargs, max_values=len(options),
+            options=options)
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer(thinking=False)
@@ -103,7 +104,7 @@ class Rk9(discord.Client):
 
             logging.info(f'Running check for {watch.discord_id}:{watch.tags}')
             await self._check_query(watch)
-        
+
     async def _check_query(self, watch):
             user = await self.fetch_user(watch.discord_id)
             last_check = watch.last_check.replace(tzinfo=timezone.utc)
@@ -225,12 +226,12 @@ async def info(interaction: discord.Interaction):
         for query in queries:
             last_check = query.last_check.replace(tzinfo=timezone.utc)
             next_check = (last_check + CHECK_INTERVAL).timestamp()
-            fmt.append(f'* `{query.tags}` next check est. <t:{int(next_check)}:R>') 
+            fmt.append(f'* `{query.tags}` next check est. <t:{int(next_check)}:R>')
         result += '\n'.join(fmt)
 
     if not result:
         result = 'You\'re not following any queries.'
-    
+
     await interaction.response.send_message(result, ephemeral=True)
 
 @client.tree.command()

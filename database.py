@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from peewee import *
+from peewee import SqliteDatabase, Model, BigIntegerField, TextField, DateTimeField
 
 db = SqliteDatabase('rk9.sqlite3', pragmas={'journal_mode': 'wal'})
 
