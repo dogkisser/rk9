@@ -107,7 +107,7 @@ class Rk9(discord.Client):
             last_check = watch.last_check.replace(tzinfo=timezone.utc)
 
             latest_posts = await self.get_latest_posts(watch)
-            logging.debug(f'{watch.tags} yields {len(latest_posts)}\n{latest_posts}')
+            logging.debug(f'{watch.tags} yields {len(latest_posts)}')
             for post in latest_posts:
                 posted = datetime.fromisoformat(post['created_at'])
 
