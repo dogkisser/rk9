@@ -176,6 +176,9 @@ class Rk9(discord.Client):
             aiohttp.ClientSession(headers=headers) as session,
             session.get(url) as response,
         ):
+            if response.status != 200:
+                logging.warn(f"response != 200: {response}")
+
             response = await response.json()
             return response["posts"]
 
