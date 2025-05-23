@@ -112,7 +112,6 @@ class Rk9(discord.Client):
                 posted = datetime.fromisoformat(post['created_at'])
 
                 if last_check > posted:
-                    logging.debug(f'lc>p {last_check} > {posted}')
                     continue
 
                 author = ', '.join(post['tags']['artist'])
