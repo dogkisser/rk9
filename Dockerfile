@@ -1,6 +1,8 @@
 FROM ghcr.io/astral-sh/uv:python3.13-alpine
-WORKDIR /app
 
+LABEL org.opencontainers.image.description="Discord bot for subscribing to e621 tags"
+
+WORKDIR /app
 COPY * /app
 
 RUN addgroup -S rk9
