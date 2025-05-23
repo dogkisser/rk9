@@ -24,7 +24,6 @@ class TagError(ValueError):
     pass
 
 def normalise_tags(tags: str) -> str:
-    """Normalises a tag string or list of tags into a tag string"""
     if not all(c in string.printable for c in tags):
         raise TagError('tags contain characters disallowed by e621')
 
