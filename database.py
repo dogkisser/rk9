@@ -1,7 +1,6 @@
 from peewee import SqliteDatabase, Model, BigIntegerField, TextField, DateTimeField
 
-db = SqliteDatabase("rk9.sqlite3", pragmas={"journal_mode": "wal"})
-
+db = SqliteDatabase("data/rk9.sqlite3", pragmas={"journal_mode": "wal"})
 
 class BaseModel(Model):
     class Meta:
