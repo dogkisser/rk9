@@ -1,6 +1,6 @@
 [project]
 name = "rk9"
-version = "0.1.1"
+version = "0.1.2"
 description = "Discord bot for subscribing to e621 tags"
 readme = "README.md"
 requires-python = ">=3.13"
