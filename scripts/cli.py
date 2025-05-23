@@ -1,0 +1,41 @@
+import argparse
+import sqlite3
+import os
+import sys
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers(dest="command")
+
+    backup = subparsers.add_parser("backup", help="safely export a copy of /rk9/'s database")
+    backup.add_argument("PATH", help="path to save the database copy to, or '-' for stdout")
+
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
+    if args.command == "backup":
+        live_db = sqlite3.connect("./data/rk9.sqlite3")
+
+        if args.PATH == '-':
+            db_bytes = live_db.serialize()
+            sys.stdout.buffer.write(db_bytes)
+            sys.stdout.flush()
+            return
+
+        out_db = sqlite3.connect(args.PATH)
+
+        def progress(_, remaining, total):
+            bar_length = min(20, os.get_terminal_size().columns - 8)
+            filled_length = int(bar_length * (total - remaining) / total)
+            bar = '*' * filled_length + ' ' * (bar_length - filled_length)
+            percent = 100 * (total - remaining) / total
+
+            sys.stderr.write(f"\r\33[2K\r[{bar}] {percent:5.1f}%")
+            sys.stderr.flush()
+
+        live_db.backup(out_db, pages=1, progress=progress)
+
+if __name__ == '__main__':
+    main()
