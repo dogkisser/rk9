@@ -150,7 +150,7 @@ class Rk9(discord.Client):
             embed.set_image(url=url)
             embed.set_footer(text="/rk9/ • 👎 to remove")
 
-            if post["sample"]["has"] in ["webm", "mp4"]:
+            if post["file"]["ext"] in ["webm", "mp4"]:
                 embed.add_field(name=":play_pause: Animated", value="", inline=False)
 
             if author:
