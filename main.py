@@ -1,5 +1,5 @@
 import database
-from database import WatchedTags
+from database import *
 
 import os
 import string
@@ -73,7 +73,7 @@ class Rk9(discord.Client):
 
         self.db = database.db
         self.db.connect()
-        self.db.create_tables([WatchedTags])
+        self.db.create_tables([WatchedTags, PrefixTags])
 
         # Used to limit the number of concurrent requests to the e621 API.
         # e6's rate limit strictly is two requests per second, this is a bit of a hack that should
@@ -152,8 +152,11 @@ class Rk9(discord.Client):
             watch.save()
 
     async def get_latest_posts(self, watch):
+        prefix = (p.tags if (p := PrefixTags.get_or_none(PrefixTags.discord_id == watch.discord_id))
+            else '')
+
         headers = {'user-agent': 'github.com/dogkisser/rk9'}
-        url = f'https://e621.net/posts.json?tags={watch.tags} date:day'
+        url = f'https://e621.net/posts.json?tags={watch.tags} {prefix} date:day'
 
         async with self.e6_api_semaphore:
             async with aiohttp.ClientSession(headers=headers) as session:
@@ -206,24 +209,35 @@ async def unfollow(interaction: discord.Interaction):
     await interaction.response.send_message(ephemeral=True, view=view)
 
 @client.tree.command()
-async def following(interaction: discord.Interaction):
-    """Lists the queries you're following and when they'll be next checked"""
+async def info(interaction: discord.Interaction):
+    """List your prefix, followed queries, and when they'll be checked next"""
+    uid = interaction.user.id
+
     queries = WatchedTags.select(WatchedTags.tags, WatchedTags.last_check).where(
-        WatchedTags.discord_id == interaction.user.id
-    )
+        WatchedTags.discord_id == interaction.user.id)
 
-    if not queries:
-        await interaction.response.send_message('You\'re not following any queries.')
-        return
+    result = (f'Prefix: `{p.tags}`\n' if (p := PrefixTags.get_or_none(PrefixTags.discord_id == uid))
+        else 'No prefix set.\n')
 
-    fmt = []
-    for query in queries:
-        last_check = query.last_check.replace(tzinfo=timezone.utc)
-        next_check = (last_check + CHECK_INTERVAL).timestamp()
-        fmt.append(f'* `{query.tags}` next check est. <t:{int(next_check)}:R>') 
-    fmt = '\n'.join(fmt)
+    if queries:
+        fmt = []
+        for query in queries:
+            last_check = query.last_check.replace(tzinfo=timezone.utc)
+            next_check = (last_check + CHECK_INTERVAL).timestamp()
+            fmt.append(f'* `{query.tags}` next check est. <t:{int(next_check)}:R>') 
+        result += '\n'.join(fmt)
 
-    await interaction.response.send_message(fmt)
+    if not result:
+        result = 'You\'re not following any queries.'
+    
+    await interaction.response.send_message(result, ephemeral=True)
+
+@client.tree.command()
+async def prefix(interaction: discord.Interaction, query: str):
+    """Set a list of tags applied to all queries automatically"""
+    PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
+
+    await interaction.response.send_message("Prefix updated", ephemeral=True)
 
 # TODO: probably should check if the reacted message is an image or just a random message
 @client.event

@@ -18,3 +18,7 @@ class WatchedTags(BaseModel):
         indexes = (
             (('discord_id', 'tags'), True),
         )
+
+class PrefixTags(BaseModel):
+    discord_id = BigIntegerField(index=True, unique=True)
+    tags = TextField()
