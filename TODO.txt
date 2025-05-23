@@ -3,4 +3,3 @@
 - maybe `/compact` that minimises the number of separate queries you have by joining them?
 - more advanced tag normalisation and deduplication, has to be aware of e621 parenthesis syntax
     though
-- warn or fail when a query has over 40 tags (e621's limit)
