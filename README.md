@@ -19,9 +19,9 @@
 * Put your bot's Discord token in `docker-compose.yml`
 * Run `docker compose up -d`
 
-### Uv
+### uv
 
-* Install [uv](https://docs.astral.sh/uv/)
+* Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
 * Clone or download a copy of the repo
 * Create an `.env` file next to `main.py` containing your configuration (per `docker-compose.yml`)
 * Additionally define the variable `RK9_DATA_DIR`, the directory rk9 will store data in.
