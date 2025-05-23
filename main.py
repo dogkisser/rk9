@@ -35,7 +35,8 @@ def normalise_tags(tags: str) -> str:
 
 class UnfollowDropdown(discord.ui.Select):
     def __init__(self, queries, **kwargs):
-        options = [discord.SelectOption(label=query) for query in queries]
+        options = [discord.SelectOption(label=query[:98] + (query[98:] and '..'),
+            value=str(i)) for (i, query) in enumerate(queries)]
         super().__init__(placeholder='Select query', **kwargs, max_values=len(options), options=options)
 
     async def callback(self, interaction: discord.Interaction):
@@ -56,13 +57,13 @@ class UnfollowView(discord.ui.View):
     async def unfollow(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.stop()
 
+        delete = [self.queries[int(i)] for i in self.unfollow_dropdown.values]
         query = WatchedTags.delete().where(
             (WatchedTags.discord_id == interaction.user.id) &
-            (WatchedTags.tags << self.unfollow_dropdown.values)
-        )
+            (WatchedTags.tags << delete))
         query.execute()
 
-        for tags in self.unfollow_dropdown.values:
+        for tags in delete:
             task_name = f'{interaction.user.id}:{tags}'
             [task.cancel() for task in asyncio.all_tasks() if task.get_name() == task_name]
 
