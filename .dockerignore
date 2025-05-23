@@ -8,5 +8,6 @@ __pycache__
 *.example
 *.md
 .gitignore
+.github
 Dockerfile
 docker-compose.yml

@@ -1,14 +1,14 @@
 services:
   rk9:
-    build:
-      context: .
-
+    image: ghcr.io/dogkisser/rk9:latest
     container_name: rk9
 
     environment:
       # Your Discord bot's token
       RK9_DISCORD_TOKEN: ""
-      # How often, in minutes, e621 is queried for new posts. The default is 15.
+
+      # Optional configuration:
+      # How often, in minutes, e621 is queried for new posts.
       #RK9_CHECK_INTERVAL: 15
 
     volumes:
