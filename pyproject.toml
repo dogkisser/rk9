@@ -1,7 +1,7 @@
 [project]
 name = "rk9"
 version = "0.1.1"
-description = "e621 tag follower Discord bot"
+description = "Discord bot for subscribing to e621 tags"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
