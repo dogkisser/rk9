@@ -12,13 +12,14 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def main():
     args = parse_args()
 
     if args.command == "backup":
         live_db = sqlite3.connect("./data/rk9.sqlite3")
 
-        if args.PATH == '-':
+        if args.PATH == "-":
             db_bytes = live_db.serialize()
             sys.stdout.buffer.write(db_bytes)
             sys.stdout.flush()
@@ -29,7 +30,7 @@ def main():
         def progress(_, remaining, total):
             bar_length = min(20, os.get_terminal_size().columns - 8)
             filled_length = int(bar_length * (total - remaining) / total)
-            bar = '*' * filled_length + ' ' * (bar_length - filled_length)
+            bar = "*" * filled_length + " " * (bar_length - filled_length)
             percent = 100 * (total - remaining) / total
 
             sys.stderr.write(f"\r\33[2K\r[{bar}] {percent:5.1f}%")
@@ -37,5 +38,6 @@ def main():
 
         live_db.backup(out_db, pages=1, progress=progress)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
