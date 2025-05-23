@@ -15,13 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - id: parse-version
-        run: sed -n 's/^version *= *"\(.*\)"/version=\1/p' pyproject.toml >> "$GITHUB_OUTPUT"
+      - id: make-tag
+        run: sed -n 's/^version *= *"\(.*\)"/tag=v\1/p' pyproject.toml >> "$GITHUB_OUTPUT"
     
+      - id: get-latest-tag
+        uses: actions-ecosystem/action-get-latest-tag@v1
+
       - uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.parse-version.outputs.version }}
-          release_name: v${{ steps.parse-version.outputs.version }}
+          tag_name: v${{ steps.make-tag.outputs.tag }}
+          release_name: v${{ steps.make-tag.outputs.tag }}
           prerelease: true
+        if: ${{ steps.get-latest-tag.outputs.tag != steps.make-tag.outputs.tag }}
