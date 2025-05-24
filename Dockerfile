@@ -31,6 +31,7 @@ RUN chown rk9:rk9 /data /app
 RUN chmod 700 /data /app
 
 ENV RK9_DATA_DIR=/data
+RUN chmod +x /app/scripts/*
 ENV PATH="$PATH:/app/scripts"
 
 USER rk9
