@@ -128,7 +128,6 @@ class Rk9(discord.Client):
             if not (channel := user.dm_channel):
                 channel = await user.create_dm()
 
-            logging.debug(f"Sending {post}")
             # post['file']['url'] is null if the post is on the global blacklist, but all the
             # other information is intact. we reconstruct the url ourself to side-step.
             img_hash = post["file"]["md5"]
