@@ -1,4 +1,3 @@
-- replace all the datetime timestamp stuff with an accessor/setter on the database field
 - maybe a discord.py check for not following any queries
 - maybe `/compact` that minimises the number of separate queries you have by joining them?
 - more advanced tag normalisation and deduplication, has to be aware of e621 parenthesis syntax

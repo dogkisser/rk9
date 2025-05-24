@@ -1,7 +1,8 @@
 import os
+from datetime import datetime, timezone
 
 import dotenv
-from peewee import SqliteDatabase, Model, BigIntegerField, TextField, DateTimeField
+from peewee import SqliteDatabase, Model, Field, BigIntegerField, TextField
 from peewee_migrate import Router
 
 dotenv.load_dotenv()
@@ -12,6 +13,16 @@ db = SqliteDatabase(f"{DATA_DIR}/rk9.sqlite3", pragmas={"journal_mode": "wal"})
 router = Router(db)
 
 
+class UtcDateTimeField(Field):
+    field_type = "text"
+
+    def db_value(self, value):
+        return str(value.replace(tzinfo=None))
+
+    def python_value(self, value):
+        return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+
+
 class BaseModel(Model):
     class Meta:
         database = db
@@ -20,7 +31,7 @@ class BaseModel(Model):
 class WatchedTags(BaseModel):
     discord_id = BigIntegerField(index=True)
     tags = TextField()
-    last_check = DateTimeField(index=True)
+    last_check = UtcDateTimeField(index=True)
     posts_sent = BigIntegerField(default=0)
 
     class Meta:

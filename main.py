@@ -103,9 +103,8 @@ class Rk9(discord.Client):
     async def check_query(self, watch):
         while True:
             delta_ago = datetime.now(timezone.utc) - CHECK_INTERVAL
-            last_check = watch.last_check.replace(tzinfo=timezone.utc)
 
-            delay = max(0, (last_check - delta_ago).total_seconds())
+            delay = max(0, (watch.last_check - delta_ago).total_seconds())
             await asyncio.sleep(delay)
 
             logging.info(f"Running check for {watch.discord_id}:{watch.tags}")
@@ -113,7 +112,6 @@ class Rk9(discord.Client):
 
     async def _check_query(self, watch):
         user = await self.fetch_user(watch.discord_id)
-        last_check = watch.last_check.replace(tzinfo=timezone.utc)
 
         latest_posts = await self.get_latest_posts(watch)
         logging.debug(f"{watch.tags} yields {len(latest_posts)}")
@@ -122,7 +120,7 @@ class Rk9(discord.Client):
         for post in latest_posts:
             posted = datetime.fromisoformat(post["created_at"])
 
-            if last_check > posted:
+            if watch.last_check > posted:
                 continue
 
             author = ", ".join(post["tags"]["artist"])
@@ -160,7 +158,7 @@ class Rk9(discord.Client):
             sent += 1
 
         watch.posts_sent += sent
-        watch.last_check = datetime.now(timezone.utc).replace(tzinfo=None)
+        watch.last_check = datetime.now(timezone.utc)
         watch.save()
 
     async def get_latest_posts(self, watch):
@@ -203,7 +201,7 @@ async def follow(interaction: discord.Interaction, query: str):
         watched = WatchedTags(
             discord_id=interaction.user.id,
             tags=normalised_query,
-            last_check=datetime.now(timezone.utc).replace(tzinfo=None),
+            last_check=datetime.now(timezone.utc),
         )
         watched.save()
 
@@ -249,11 +247,13 @@ async def info(interaction: discord.Interaction):
     embed.set_footer(text="/rk9/")
 
     for query in queries:
-        last_check = query.last_check.replace(tzinfo=timezone.utc)
-        next_check = (last_check + CHECK_INTERVAL).timestamp()
-        
-        embed.add_field(name=f"`{query.tags}`", value=f"- {query.posts_sent} posts sent\n" +
-            f"- Next check: ~<t:{int(next_check)}:R>", inline=True)
+        next_check = (query.last_check + CHECK_INTERVAL).timestamp()
+
+        embed.add_field(
+            name=f"`{query.tags}`",
+            value=f"- {query.posts_sent} posts sent\n" + f"- Next check: ~<t:{int(next_check)}:R>",
+            inline=True,
+        )
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
