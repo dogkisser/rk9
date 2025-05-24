@@ -265,14 +265,14 @@ async def prefix(interaction: discord.Interaction, query: str):
     await interaction.response.send_message("Prefix updated", ephemeral=True)
 
 
-# TODO: probably should check if the reacted message is an image or just a random message
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     if payload.emoji.name == "👎":
         channel = await client.fetch_user(payload.user_id)
         message = await channel.fetch_message(payload.message_id)
 
-        await message.delete()
+        if any(["👎" in e.footer.text for e in message.embeds]):
+            await message.delete()
 
 
 # TODO: Admin only!!
