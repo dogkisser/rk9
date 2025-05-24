@@ -1,5 +1,6 @@
 import os
 from datetime import datetime, timezone
+from pathlib import Path
 
 import dotenv
 from peewee import SqliteDatabase, Model, Field, BigIntegerField, TextField
@@ -10,7 +11,7 @@ dotenv.load_dotenv()
 DATA_DIR = os.environ["RK9_DATA_DIR"]
 
 db = SqliteDatabase(f"{DATA_DIR}/rk9.sqlite3", pragmas={"journal_mode": "wal"})
-router = Router(db)
+router = Router(db, migrate_dir=Path(__file__).absolute().parent.joinpath('migrations'))
 
 
 class UtcDateTimeField(Field):
