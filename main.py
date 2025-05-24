@@ -240,7 +240,7 @@ async def info(interaction: discord.Interaction):
     queries = WatchedTags.select(
         WatchedTags.tags, WatchedTags.posts_sent, WatchedTags.last_check
     ).where(WatchedTags.discord_id == interaction.user.id)
-    prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid)
+    prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid).tags
 
     embed = discord.Embed(title="Your Stats", description=f"- Prefix: {prefix}")
     embed.set_footer(text="/rk9/")
