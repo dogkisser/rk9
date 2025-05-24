@@ -237,33 +237,25 @@ async def unfollow(interaction: discord.Interaction):
 
 @client.tree.command()
 async def info(interaction: discord.Interaction):
-    """List your prefix, followed queries, and when they'll be checked next"""
+    """List your prefix and information about your followed queries"""
     uid = interaction.user.id
 
     queries = WatchedTags.select(
         WatchedTags.tags, WatchedTags.posts_sent, WatchedTags.last_check
     ).where(WatchedTags.discord_id == interaction.user.id)
+    prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid)
 
-    result = (
-        f"Prefix: `{p.tags}`\n"
-        if (p := PrefixTags.get_or_none(PrefixTags.discord_id == uid))
-        else "No prefix set.\n"
-    )
+    embed = discord.Embed(title="Your Stats", description=f"- Prefix: {prefix}")
+    embed.set_footer(text="/rk9/")
 
-    if queries:
-        fmt = []
-        for query in queries:
-            last_check = query.last_check.replace(tzinfo=timezone.utc)
-            next_check = (last_check + CHECK_INTERVAL).timestamp()
-            fmt.append(
-                f"* `{query.tags}` - {query.posts_sent} posts - next check est. <t:{int(next_check)}:R>"
-            )
-        result += "\n".join(fmt)
+    for query in queries:
+        last_check = query.last_check.replace(tzinfo=timezone.utc)
+        next_check = (last_check + CHECK_INTERVAL).timestamp()
+        
+        embed.add_field(name=f"`{query.tags}`", value=f"- {query.posts_sent} posts sent\n" +
+            f"- Next check: ~<t:{int(next_check)}:R>", inline=True)
 
-    if not result:
-        result = "You're not following any queries."
-
-    await interaction.response.send_message(result, ephemeral=True)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @client.tree.command()
