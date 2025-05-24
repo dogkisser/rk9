@@ -240,21 +240,17 @@ async def info(interaction: discord.Interaction):
     queries = WatchedTags.select(
         WatchedTags.tags, WatchedTags.posts_sent, WatchedTags.last_check
     ).where(WatchedTags.discord_id == interaction.user.id)
-    prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid).tags
+    prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid)
 
-    embed = discord.Embed(title="Your Stats", description=f"- Prefix: {prefix}")
-    embed.set_footer(text="/rk9/")
+    result = f"Prefix: {prefix if not prefix else prefix.tags}\n"
 
     for query in queries:
-        next_check = (query.last_check + CHECK_INTERVAL).timestamp()
+        next_check = int((query.last_check + CHECK_INTERVAL).timestamp())
 
-        embed.add_field(
-            name=f"`{query.tags}`",
-            value=f"- {query.posts_sent} posts sent\n" + f"- Next check: ~<t:{int(next_check)}:R>",
-            inline=True,
-        )
-
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+        result += (f"### `{query.tags}`\n* Posts sent: {query.posts_sent}\n" +
+            f"* Next check: ~<t:{next_check}:R>\n")
+    
+    await interaction.response.send_message(result, ephemeral=True)
 
 
 @client.tree.command()
