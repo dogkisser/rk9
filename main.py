@@ -81,10 +81,7 @@ class Rk9(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = discord.app_commands.CommandTree(self)
-
         self.db = database.db
-        self.db.connect()
-        self.db.create_tables([WatchedTags, PrefixTags])
 
         # Used to limit the number of concurrent requests to the e621 API.
         # e6's rate limit strictly is two requests per second, this is a bit of a hack that should
@@ -120,6 +117,8 @@ class Rk9(discord.Client):
 
         latest_posts = await self.get_latest_posts(watch)
         logging.debug(f"{watch.tags} yields {len(latest_posts)}")
+
+        sent = 0
         for post in latest_posts:
             posted = datetime.fromisoformat(post["created_at"])
 
@@ -158,7 +157,9 @@ class Rk9(discord.Client):
                 embed.set_author(name=author)
 
             await channel.send(embed=embed)
+            sent += 1
 
+        watch.posts_sent += sent
         watch.last_check = datetime.now(timezone.utc).replace(tzinfo=None)
         watch.save()
 
@@ -239,9 +240,9 @@ async def info(interaction: discord.Interaction):
     """List your prefix, followed queries, and when they'll be checked next"""
     uid = interaction.user.id
 
-    queries = WatchedTags.select(WatchedTags.tags, WatchedTags.last_check).where(
-        WatchedTags.discord_id == interaction.user.id
-    )
+    queries = WatchedTags.select(
+        WatchedTags.tags, WatchedTags.posts_sent, WatchedTags.last_check
+    ).where(WatchedTags.discord_id == interaction.user.id)
 
     result = (
         f"Prefix: `{p.tags}`\n"
@@ -254,7 +255,9 @@ async def info(interaction: discord.Interaction):
         for query in queries:
             last_check = query.last_check.replace(tzinfo=timezone.utc)
             next_check = (last_check + CHECK_INTERVAL).timestamp()
-            fmt.append(f"* `{query.tags}` next check est. <t:{int(next_check)}:R>")
+            fmt.append(
+                f"* `{query.tags}` - {query.posts_sent} posts - next check est. <t:{int(next_check)}:R>"
+            )
         result += "\n".join(fmt)
 
     if not result:
