@@ -1,18 +1,17 @@
 import database
+import cogs
 from database import WatchedTags, PrefixTags, BlacklistedTags
+from util import flatten
 
 import os
-import string
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Literal
 
-import peewee
 import dotenv
 import aiohttp
 import discord
-from discord import app_commands
+import discord.ext.commands as commands
 from discord.utils import escape_markdown
 
 dotenv.load_dotenv()
@@ -22,71 +21,10 @@ DEBUG_GUILD = discord.Object(id=id) if (id := os.environ.get("RK9_DEBUG_GUILD"))
 
 discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
-
-class TagError(ValueError):
-    pass
-
-
-def flatten(xss):
-    return [x for xs in xss for x in xs]
-
-
-def normalise_tags(tags: str) -> str:
-    if not all(c in string.printable for c in tags):
-        raise TagError("tags contain characters disallowed by e621")
-
-    if len(tags.split()) > 40:
-        raise TagError("too many tags in query (> 40)")
-
-    return tags.lower()
-
-
-class UnfollowDropdown(discord.ui.Select):
-    def __init__(self, queries, **kwargs):
-        options = [
-            discord.SelectOption(label=query[:98] + (query[98:] and ".."), value=str(i))
-            for (i, query) in enumerate(queries)
-        ]
-        super().__init__(
-            placeholder="Select query", **kwargs, max_values=len(options), options=options
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(thinking=False)
-
-
-# Maximum of 25 queries per invocation
-class UnfollowView(discord.ui.View):
-    def __init__(self, queries):
-        self.queries = queries
-        self.selected = []
-
-        super().__init__()
-
-        self.unfollow_dropdown = UnfollowDropdown(self.queries, row=0)
-        self.add_item(self.unfollow_dropdown)
-
-    @discord.ui.button(label="Unfollow", row=1, style=discord.ButtonStyle.red)
-    async def unfollow(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.stop()
-
-        delete = [self.queries[int(i)] for i in self.unfollow_dropdown.values]
-        query = WatchedTags.delete().where(
-            (WatchedTags.discord_id == interaction.user.id) & (WatchedTags.tags << delete)
-        )
-        query.execute()
-
-        for tags in delete:
-            task_name = f"{interaction.user.id}:{tags}"
-            [task.cancel() for task in asyncio.all_tasks() if task.get_name() == task_name]
-
-        await interaction.response.edit_message(content="Done", view=None)
-
-
-class Rk9(discord.Client):
+class Rk9(commands.Bot):
     def __init__(self, *, intents: discord.Intents):
-        super().__init__(intents=intents)
-        self.tree = discord.app_commands.CommandTree(self)
+        super().__init__(command_prefix="/", intents=intents)
+        # self.tree = discord.app_commands.CommandTree(self)
         self.db = database.db
 
         # Used to limit the number of concurrent requests to the e621 API.
@@ -97,6 +35,8 @@ class Rk9(discord.Client):
         self.e6_api_semaphore = asyncio.Semaphore(2)
 
     async def setup_hook(self):
+        await cogs.add_all(self)
+    
         if DEBUG_GUILD:
             self.tree.copy_global_to(guild=DEBUG_GUILD)
             await self.tree.sync(guild=DEBUG_GUILD)
@@ -208,47 +148,6 @@ async def on_ready():
 
 
 @client.tree.command()
-async def follow(interaction: discord.Interaction, query: str):
-    """Follow a new query"""
-    try:
-        normalised_query = normalise_tags(query)
-
-        watched = WatchedTags(
-            discord_id=interaction.user.id,
-            tags=normalised_query,
-            last_check=datetime.now(timezone.utc),
-        )
-        watched.save()
-
-        task_name = f"{watched.discord_id}:{watched.tags}"
-        client.loop.create_task(client.check_query(watched), name=task_name)
-
-        await interaction.response.send_message("Added", ephemeral=True)
-    except TagError as e:
-        await interaction.response.send_message(e, ephemeral=True)
-    except peewee.IntegrityError:
-        await interaction.response.send_message(
-            "You're already watching an identical query", ephemeral=True
-        )
-
-
-@client.tree.command()
-async def unfollow(interaction: discord.Interaction):
-    """Stop following a query/queries"""
-    queries = WatchedTags.select(WatchedTags.tags).where(
-        WatchedTags.discord_id == interaction.user.id
-    )
-    queries = [q.tags for q in queries]
-
-    if not queries:
-        await interaction.response.send_message("You're not following any queries", ephemeral=True)
-        return
-
-    view = UnfollowView(queries)
-    await interaction.response.send_message(ephemeral=True, view=view)
-
-
-@client.tree.command()
 async def info(interaction: discord.Interaction):
     """List your prefix and information about your followed queries"""
     uid = interaction.user.id
@@ -275,53 +174,6 @@ async def info(interaction: discord.Interaction):
         result if result else "Nothing configured", ephemeral=True
     )
 
-prefix_group = app_commands.Group(name="prefix", description="Modify your search prefix")
-
-@prefix_group.command(name="set")
-async def set_prefix(interaction: discord.Interaction, query: str):
-    """Update your tag prefix"""
-    PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
-
-    await interaction.response.send_message("Prefix updated", ephemeral=True)
-
-
-@prefix_group.command()
-async def clear(interaction: discord.Interaction):
-    """Clear your tag prefix"""
-    PrefixTags.delete().where(PrefixTags.discord_id == interaction.user.id).execute()
-
-    await interaction.response.send_message("Prefix updated", ephemeral=True)
-
-client.tree.add_command(prefix_group)
-
-blacklist_group = app_commands.Group(name="blacklist", description="Modify your tag blacklist")
-
-@blacklist_group.command(name="add")
-async def add(
-    interaction: discord.Interaction,
-    tags: str,
-):
-    """Add tags to your blacklist"""
-    data = [{"discord_id": interaction.user.id, "tag": tag} for tag in tags.split(" ")]
-    BlacklistedTags.insert_many(data).on_conflict_ignore().execute()
-
-    await interaction.response.send_message("Done", ephemeral=True)
-
-@blacklist_group.command()
-async def remove(
-    interaction: discord.Interaction,
-    tags: str,
-):
-    """Remove tags from your blacklist"""
-    tag_list = tags.split(" ")
-
-    BlacklistedTags.delete().where(
-        BlacklistedTags.discord_id == interaction.user.id & BlacklistedTags.tag << tag_list
-    ).execute()
-
-    await interaction.response.send_message("Done", ephemeral=True)
-
-client.tree.add_command(blacklist_group)
 
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
