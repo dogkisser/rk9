@@ -276,9 +276,12 @@ async def info(interaction: discord.Interaction):
 
 
 @client.tree.command()
-async def prefix(interaction: discord.Interaction, query: str):
+async def prefix(interaction: discord.Interaction, command: Literal["set", "clear"], query: str):
     """Set a list of tags applied to all queries automatically"""
-    PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
+    if command == "clear":
+        PrefixTags.delete().where(discord_id=interaction.user.id).execute()
+    elif command == "set":
+        PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
 
     await interaction.response.send_message("Prefix updated", ephemeral=True)
 
