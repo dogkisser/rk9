@@ -87,10 +87,10 @@ class Rk9(commands.Bot):
             # post['file']['url'] is null if the post is on the global blacklist, but all the
             # other information is intact. we reconstruct the url ourself to side-step.
             img_hash = post["file"]["md5"]
-            # try to use the sample if it exists, discord can't embed videos
-            data_seg = "/data/sample/" if post["sample"]["has"] else "/data/"
+            # try to use the sample if it exists b/c its always a jpg; discord can't embed videos
+            path = "/data/sample/" if post["sample"]["has"] else "/data/"
             ext = "jpg" if post["sample"]["has"] else post["file"]["ext"]
-            url = f"https://static1.e621.net{data_seg}{img_hash[0:2]}/{img_hash[2:4]}/{img_hash}.{ext}"
+            url = f"https://static1.e621.net{path}{img_hash[0:2]}/{img_hash[2:4]}/{img_hash}.{ext}"
             description = post["description"][:150] + (post["description"][150:] and "..")
             embed = discord.Embed(
                 title=f"#{post['id']}",
@@ -158,21 +158,20 @@ async def info(interaction: discord.Interaction):
     prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid)
     blacklisted = [t.tag for t in BlacklistedTags.select().where(BlacklistedTags.discord_id == uid)]
 
-    result = ""
-    result += f"* Prefix: `{prefix.tags}`\n" if prefix else ""
-    result += f"* Blacklisted: `{' '.join(blacklisted)}`\n" if blacklisted else ""
-
+    paginator = commands.Paginator(prefix="", suffix="")
     for query in queries:
         next_check = int((query.last_check + CHECK_INTERVAL).timestamp())
 
-        result += (
+        paginator.add_line(
             f"### `{query.tags}`\n* Posts sent: {query.posts_sent}\n"
             + f"* Next check: <t:{next_check}:R>\n"
         )
 
-    await interaction.response.send_message(
-        result if result else "Nothing configured", ephemeral=True
-    )
+    await interaction.response.send_message(f"* Prefix: {f"`{prefix.tags}`" if prefix else prefix}"+
+        f"\n* Blacklisted: {" ".join(blacklisted) if blacklisted else "None"}")
+
+    for page in paginator.pages:
+        await interaction.followup.send(page, ephemeral=True)
 
 
 @client.event
