@@ -1,11 +1,12 @@
 import database
-from database import WatchedTags, PrefixTags
+from database import WatchedTags, PrefixTags, BlacklistedTags
 
 import os
 import string
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
+from typing import Literal
 
 import peewee
 import dotenv
@@ -23,6 +24,10 @@ discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
 class TagError(ValueError):
     pass
+
+
+def flatten(xss):
+    return [x for xs in xss for x in xs]
 
 
 def normalise_tags(tags: str) -> str:
@@ -116,10 +121,20 @@ class Rk9(discord.Client):
         latest_posts = await self.get_latest_posts(watch)
         logging.debug(f"{watch.tags} yields {len(latest_posts)}")
 
+        blacklisted_tags = set(
+            [
+                tag.tag
+                for tag in BlacklistedTags.select().where(BlacklistedTags.discord_id == user.id)
+            ]
+        )
+
         sent = 0
         for post in latest_posts:
-            posted = datetime.fromisoformat(post["created_at"])
+            flat_tags = set(flatten(post["tags"].values()))
+            if not flat_tags.isdisjoint(blacklisted_tags):
+                continue
 
+            posted = datetime.fromisoformat(post["created_at"])
             if watch.last_check > posted:
                 continue
 
@@ -241,16 +256,23 @@ async def info(interaction: discord.Interaction):
         WatchedTags.tags, WatchedTags.posts_sent, WatchedTags.last_check
     ).where(WatchedTags.discord_id == interaction.user.id)
     prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid)
+    blacklisted = [t.tag for t in BlacklistedTags.select().where(BlacklistedTags.discord_id == uid)]
 
-    result = f"Prefix: {prefix if not prefix else prefix.tags}\n"
+    result = ""
+    result += f"* Prefix: `{prefix.tags}`\n" if prefix else ""
+    result += f"* Blacklisted: `{' '.join(blacklisted)}`\n" if blacklisted else ""
 
     for query in queries:
         next_check = int((query.last_check + CHECK_INTERVAL).timestamp())
 
-        result += (f"### `{query.tags}`\n* Posts sent: {query.posts_sent}\n" +
-            f"* Next check: ~<t:{next_check}:R>\n")
-    
-    await interaction.response.send_message(result, ephemeral=True)
+        result += (
+            f"### `{query.tags}`\n* Posts sent: {query.posts_sent}\n"
+            + f"* Next check: <t:{next_check}:R>\n"
+        )
+
+    await interaction.response.send_message(
+        result if result else "Nothing configured", ephemeral=True
+    )
 
 
 @client.tree.command()
@@ -259,6 +281,26 @@ async def prefix(interaction: discord.Interaction, query: str):
     PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
 
     await interaction.response.send_message("Prefix updated", ephemeral=True)
+
+
+@client.tree.command()
+async def blacklist(
+    interaction: discord.Interaction,
+    command: Literal["add", "remove"],
+    tags: str,
+):
+    """Modify your tag blacklist"""
+    tag_list = tags.split(" ")
+
+    if command == "add":
+        data = [{"discord_id": interaction.user.id, "tag": tag} for tag in tag_list]
+        BlacklistedTags.insert_many(data).on_conflict_ignore().execute()
+    elif command == "remove":
+        BlacklistedTags.delete().where(
+            BlacklistedTags.discord_id == interaction.user.id & BlacklistedTags.tag << tag_list
+        ).execute()
+
+    await interaction.response.send_message("Done", ephemeral=True)
 
 
 @client.event

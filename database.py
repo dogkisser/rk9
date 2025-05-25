@@ -11,7 +11,7 @@ dotenv.load_dotenv()
 DATA_DIR = os.environ["RK9_DATA_DIR"]
 
 db = SqliteDatabase(f"{DATA_DIR}/rk9.sqlite3", pragmas={"journal_mode": "wal"})
-router = Router(db, migrate_dir=Path(__file__).absolute().parent.joinpath('migrations'))
+router = Router(db, migrate_dir=Path(__file__).absolute().parent.joinpath("migrations"))
 
 
 class UtcDateTimeField(Field):
@@ -43,6 +43,15 @@ class WatchedTags(BaseModel):
 class PrefixTags(BaseModel):
     discord_id = BigIntegerField(index=True, unique=True)
     tags = TextField()
+
+
+class BlacklistedTags(BaseModel):
+    discord_id = BigIntegerField(index=True)
+    tag = TextField()
+
+    class Meta:
+        # UNIQUE
+        indexes = ((("discord_id", "tag"), True),)
 
 
 router.run()
