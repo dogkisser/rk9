@@ -21,10 +21,10 @@ DEBUG_GUILD = discord.Object(id=id) if (id := os.environ.get("RK9_DEBUG_GUILD"))
 
 discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
+
 class Rk9(commands.Bot):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(command_prefix="/", intents=intents)
-        # self.tree = discord.app_commands.CommandTree(self)
         self.db = database.db
 
         # Used to limit the number of concurrent requests to the e621 API.
@@ -36,7 +36,7 @@ class Rk9(commands.Bot):
 
     async def setup_hook(self):
         await cogs.add_all(self)
-    
+
         if DEBUG_GUILD:
             self.tree.copy_global_to(guild=DEBUG_GUILD)
             await self.tree.sync(guild=DEBUG_GUILD)
