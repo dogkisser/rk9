@@ -12,6 +12,7 @@ import peewee
 import dotenv
 import aiohttp
 import discord
+from discord import app_commands
 from discord.utils import escape_markdown
 
 dotenv.load_dotenv()
@@ -274,37 +275,53 @@ async def info(interaction: discord.Interaction):
         result if result else "Nothing configured", ephemeral=True
     )
 
+prefix_group = app_commands.Group(name="prefix", description="Modify your search prefix")
 
-@client.tree.command()
-async def prefix(interaction: discord.Interaction, command: Literal["set", "clear"], query: str):
-    """Set a list of tags applied to all queries automatically"""
-    if command == "clear":
-        PrefixTags.delete().where(discord_id=interaction.user.id).execute()
-    elif command == "set":
-        PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
+@prefix_group.command(name="set")
+async def set_prefix(interaction: discord.Interaction, query: str):
+    """Update your tag prefix"""
+    PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
 
     await interaction.response.send_message("Prefix updated", ephemeral=True)
 
 
-@client.tree.command()
-async def blacklist(
+@prefix_group.command()
+async def clear(interaction: discord.Interaction):
+    """Clear your tag prefix"""
+    PrefixTags.delete().where(PrefixTags.discord_id == interaction.user.id).execute()
+
+    await interaction.response.send_message("Prefix updated", ephemeral=True)
+
+client.tree.add_command(prefix_group)
+
+blacklist_group = app_commands.Group(name="blacklist", description="Modify your tag blacklist")
+
+@blacklist_group.command(name="add")
+async def add(
     interaction: discord.Interaction,
-    command: Literal["add", "remove"],
     tags: str,
 ):
-    """Modify your tag blacklist"""
-    tag_list = tags.split(" ")
-
-    if command == "add":
-        data = [{"discord_id": interaction.user.id, "tag": tag} for tag in tag_list]
-        BlacklistedTags.insert_many(data).on_conflict_ignore().execute()
-    elif command == "remove":
-        BlacklistedTags.delete().where(
-            BlacklistedTags.discord_id == interaction.user.id & BlacklistedTags.tag << tag_list
-        ).execute()
+    """Add tags to your blacklist"""
+    data = [{"discord_id": interaction.user.id, "tag": tag} for tag in tags.split(" ")]
+    BlacklistedTags.insert_many(data).on_conflict_ignore().execute()
 
     await interaction.response.send_message("Done", ephemeral=True)
 
+@blacklist_group.command()
+async def remove(
+    interaction: discord.Interaction,
+    tags: str,
+):
+    """Remove tags from your blacklist"""
+    tag_list = tags.split(" ")
+
+    BlacklistedTags.delete().where(
+        BlacklistedTags.discord_id == interaction.user.id & BlacklistedTags.tag << tag_list
+    ).execute()
+
+    await interaction.response.send_message("Done", ephemeral=True)
+
+client.tree.add_command(blacklist_group)
 
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
