@@ -169,8 +169,10 @@ async def info(interaction: discord.Interaction):
             + f"* Next check: <t:{next_check}:R>\n"
         )
 
-    await interaction.response.send_message(f"* Prefix: {f"`{prefix.tags}`" if prefix else prefix}"+
-        f"\n* Blacklisted: {" ".join(blacklisted) if blacklisted else "None"}")
+    await interaction.response.send_message(
+        f"* Prefix: {f'`{prefix.tags}`' if prefix else prefix}"
+        + f"\n* Blacklisted: {' '.join(blacklisted) if blacklisted else 'None'}"
+    )
 
     for page in paginator.pages:
         await interaction.followup.send(page, ephemeral=True)

@@ -16,7 +16,7 @@ def parse_args():
 
     backup = db_commands.add_parser("backup", help="safely export a copy of the database")
     backup.add_argument("PATH", help="path to save the database copy to, or '-' for stdout")
-    
+
     db_commands.add_parser("vacuum", help="vacuum the database")
 
     return parser.parse_args()
@@ -53,6 +53,7 @@ def main():
                 case "vacuum":
                     live_db = sqlite3.connect(f"{DATA_DIR}/rk9.sqlite3")
                     live_db.execute("VACUUM")
+
 
 if __name__ == "__main__":
     main()
