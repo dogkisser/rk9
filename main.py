@@ -53,14 +53,12 @@ class Rk9(commands.Bot):
             delay = max(0, (watch.last_check - delta_ago).total_seconds())
             await asyncio.sleep(delay)
 
-            logging.info(f"Running check for {watch.discord_id}:{watch.tags}")
             await self._check_query(watch)
 
     async def _check_query(self, watch):
         user = await self.fetch_user(watch.discord_id)
 
         latest_posts = await self.get_latest_posts(watch)
-        logging.debug(f"{watch.tags} yields {len(latest_posts)}")
 
         blacklisted_tags = set(
             [
