@@ -53,7 +53,11 @@ class Rk9(commands.Bot):
             delay = max(0, (watch.last_check - delta_ago).total_seconds())
             await asyncio.sleep(delay)
 
-            await self._check_query(watch)
+            try:
+                await self._check_query(watch)
+            except Exception as e:
+                logging.error("Exception in check_query. Trying again 2 minutes.\n", e)
+                await asyncio.sleep(2 * 60)
 
     async def _check_query(self, watch):
         user = await self.fetch_user(watch.discord_id)
