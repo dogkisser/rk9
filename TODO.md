@@ -6,4 +6,3 @@
     user; it can be cleared daily (per date:day in the query)
 - "add artist to blacklist" button
 - bookmark feature
-- rk9-cli doesn't run in container because python isn't in env

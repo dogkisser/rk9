@@ -32,7 +32,7 @@ RUN chmod 700 /data /app
 
 ENV RK9_DATA_DIR=/data
 RUN chmod +x /app/scripts/*
-ENV PATH="$PATH:/app/scripts"
+ENV PATH="$PATH:/app/scripts:/app/.venv/bin"
 
 USER rk9
-CMD ["/app/.venv/bin/python3.13", "/app/main.py"]
+CMD ["python3.13", "/app/main.py"]
