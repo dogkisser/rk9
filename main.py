@@ -18,7 +18,7 @@ dotenv.load_dotenv()
 DEBUG = os.environ.get("RK9_DEBUG") is not None
 CHECK_INTERVAL = timedelta(minutes=int(os.environ.get("RK9_CHECK_INTERVAL", 15)))
 DEBUG_GUILD = discord.Object(id=id) if (id := os.environ.get("RK9_DEBUG_GUILD")) else None
-OWNER_ID = os.environ.get("OWNER_ID")
+OWNER_ID = os.environ.get("RK9_OWNER_ID")
 
 discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
