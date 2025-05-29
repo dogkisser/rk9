@@ -7,6 +7,8 @@
 
 # /rk9/
 
+⚠️ /rk9/ is still in beta. Expect bugs and regressions.
+
 ## Features
 
 - Subscribe to e621 tags, receive DMs when matching posts are uploaded
