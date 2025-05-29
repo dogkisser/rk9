@@ -57,7 +57,7 @@ class Query(commands.GroupCog, name="query"):
         self.bot = bot
 
     @app_commands.command()
-    async def follow(self, interaction: discord.Interaction, query: str) -> None:
+    async def add(self, interaction: discord.Interaction, query: str) -> None:
         """Follow a new query"""
         try:
             normalised_query = normalise_tags(query)
@@ -81,7 +81,7 @@ class Query(commands.GroupCog, name="query"):
             )
 
     @app_commands.command()
-    async def unfollow(self, interaction: discord.Interaction) -> None:
+    async def remove(self, interaction: discord.Interaction) -> None:
         """Stop following a query/queries"""
         queries = WatchedTags.select(WatchedTags.tags).where(
             WatchedTags.discord_id == interaction.user.id
