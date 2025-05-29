@@ -25,7 +25,6 @@ class UnfollowDropdown(discord.ui.Select):
         await interaction.response.defer(thinking=False)
 
 
-# Maximum of 25 queries per invocation
 class UnfollowView(discord.ui.View):
     def __init__(self, queries):
         self.queries = queries
@@ -40,7 +39,7 @@ class UnfollowView(discord.ui.View):
 
         self.children[2].disabled = self.page == self.last_page
 
-    @discord.ui.button(label="Unfollow", row=1, style=discord.ButtonStyle.red)
+    @discord.ui.button(label="Remove", row=1, style=discord.ButtonStyle.red)
     async def unfollow(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.stop()
 
