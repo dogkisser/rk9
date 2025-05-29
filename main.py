@@ -18,8 +18,19 @@ dotenv.load_dotenv()
 DEBUG = os.environ.get("RK9_DEBUG") is not None
 CHECK_INTERVAL = timedelta(minutes=int(os.environ.get("RK9_CHECK_INTERVAL", 15)))
 DEBUG_GUILD = discord.Object(id=id) if (id := os.environ.get("RK9_DEBUG_GUILD")) else None
+OWNER_ID = os.environ.get("OWNER_ID")
 
 discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
+
+
+def owner_only(func):
+    async def wrapper(i: discord.Interaction) -> None:
+        if client.is_owner(i.user) or (i.user.id == OWNER_ID if OWNER_ID else False):
+            await func()
+        else:
+            await i.response.send_message("Only my owner can run this command", ephemeral=True)
+
+    return wrapper
 
 
 class Rk9(commands.Bot):
@@ -149,6 +160,16 @@ async def on_ready():
     logging.info(f"I'm {client.user}")
 
 
+@client.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    if payload.emoji.name == "👎":
+        channel = await client.fetch_user(payload.user_id)
+        message = await channel.fetch_message(payload.message_id)
+
+        if any("👎" in e.footer.text for e in message.embeds):
+            await message.delete()
+
+
 @client.tree.command()
 async def info(interaction: discord.Interaction):
     """List your prefix and information about your followed queries"""
@@ -179,18 +200,8 @@ async def info(interaction: discord.Interaction):
         await interaction.followup.send(page, ephemeral=True)
 
 
-@client.event
-async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
-    if payload.emoji.name == "👎":
-        channel = await client.fetch_user(payload.user_id)
-        message = await channel.fetch_message(payload.message_id)
-
-        if any("👎" in e.footer.text for e in message.embeds):
-            await message.delete()
-
-
-# TODO: Admin only!!
 @client.tree.command()
+@owner_only
 async def sync(interaction: discord.Interaction):
     """Sync commands globally"""
     await client.tree.sync()
