@@ -96,3 +96,21 @@ class Query(commands.GroupCog, name="query"):
 
         view = UnfollowView(queries)
         await interaction.response.send_message(ephemeral=True, view=view)
+
+    @app_commands.command()
+    async def find(self, interaction: discord.Interaction, containing: str) -> None:
+        """Check whether a query containing certain tags exists"""
+        target = containing.split()
+        queries = WatchedTags.select(WatchedTags.tags).where(
+            WatchedTags.discord_id == interaction.user.id
+        )
+
+        results = ""
+        for query in queries:
+            if all(tag in query.tags for tag in target):
+                results += f"- `{query.tags}`\n"
+
+        if not results:
+            results = "No results"
+
+        await interaction.response.send_message(results, ephemeral=True)

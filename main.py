@@ -185,7 +185,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
         channel = await client.fetch_user(payload.user_id)
         message = await channel.fetch_message(payload.message_id)
 
-        if any(["👎" in e.footer.text for e in message.embeds]):
+        if any("👎" in e.footer.text for e in message.embeds):
             await message.delete()
 
 
