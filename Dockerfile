@@ -28,7 +28,7 @@ RUN adduser -G rk9 -D -S rk9
 RUN mkdir -p /data
 
 RUN chown rk9:rk9 /data /app
-RUN chmod 700 /data /app
+RUN chmod 700 -R /data
 
 ENV RK9_DATA_DIR=/data
 RUN chmod +x /app/scripts/*
