@@ -2,6 +2,7 @@ import database
 import cogs
 from database import WatchedTags, PrefixTags, BlacklistedTags
 from util import flatten
+from functools import wraps
 
 import os
 import asyncio
@@ -24,11 +25,13 @@ discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
 
 
 def owner_only(func):
-    async def wrapper(i: discord.Interaction) -> None:
-        if client.is_owner(i.user) or (i.user.id == OWNER_ID if OWNER_ID else False):
-            await func()
-        else:
-            await i.response.send_message("Only my owner can run this command", ephemeral=True)
+    @wraps(func)
+    async def wrapper(i: discord.Interaction, *args, **kwargs) -> None:
+        is_owner = await client.is_owner(i.user)
+        if is_owner or (i.user.id == int(OWNER_ID) if OWNER_ID else False):
+            return await func(i, *args, **kwargs)
+
+        await i.response.send_message("Only my owner can use this command", ephemeral=True)
 
     return wrapper
 
