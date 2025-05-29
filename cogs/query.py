@@ -1,3 +1,4 @@
+from math import ceil
 from database import WatchedTags
 from util import normalise_tags, TagError
 
@@ -29,11 +30,15 @@ class UnfollowView(discord.ui.View):
     def __init__(self, queries):
         self.queries = queries
         self.selected = []
+        self.page = 0
+        self.last_page = ceil(len(self.queries) / 25) - 1
 
         super().__init__()
 
-        self.unfollow_dropdown = UnfollowDropdown(self.queries, row=0)
+        self.unfollow_dropdown = UnfollowDropdown(self.queries[:25], row=0)
         self.add_item(self.unfollow_dropdown)
+
+        self.children[2].disabled = self.page == self.last_page
 
     @discord.ui.button(label="Unfollow", row=1, style=discord.ButtonStyle.red)
     async def unfollow(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -50,6 +55,30 @@ class UnfollowView(discord.ui.View):
             [task.cancel() for task in asyncio.all_tasks() if task.get_name() == task_name]
 
         await interaction.response.edit_message(content="Done", view=None)
+
+    @discord.ui.button(label="⬅️", disabled=True, row=1, style=discord.ButtonStyle.gray)
+    async def page_left(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page = max(0, self.page - 1)
+        await self.update_dropdown(interaction)
+
+    @discord.ui.button(label="➡️", row=1, style=discord.ButtonStyle.gray)
+    async def page_right(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.page = min(self.last_page, self.page + 1)
+        await self.update_dropdown(interaction)
+
+    async def update_dropdown(self, interaction: discord.Interaction):
+        start = self.page * 25
+        new = self.queries[start : start + 25]
+
+        self.remove_item(self.unfollow_dropdown)
+        self.unfollow_dropdown = UnfollowDropdown(new, row=0)
+        self.children.insert(0, self.unfollow_dropdown)
+        self.add_item(self.unfollow_dropdown)
+
+        self.children[1].disabled = self.page == 0
+        self.children[2].disabled = self.page == self.last_page
+
+        await interaction.response.edit_message(view=self)
 
 
 class Query(commands.GroupCog, name="query"):
