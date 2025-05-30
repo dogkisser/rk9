@@ -1,12 +1,12 @@
 import database
 import cogs
-from database import WatchedTags, PrefixTags, BlacklistedTags
-from util import flatten
-from functools import wraps
 
 import os
 import asyncio
 import logging
+from database import WatchedTags, PrefixTags, BlacklistedTags
+from util import flatten
+from functools import wraps
 from datetime import datetime, timezone, timedelta
 
 import dotenv
@@ -14,6 +14,7 @@ import aiohttp
 import discord
 import discord.ext.commands as commands
 from discord.utils import escape_markdown
+from aiolimiter import AsyncLimiter
 
 dotenv.load_dotenv()
 DEBUG = os.environ.get("RK9_DEBUG") is not None
@@ -47,6 +48,11 @@ class Rk9(commands.Bot):
         # possible idea: sleep at the end of the api request while still holding the semaphore for
         # ~500ms
         self.e6_api_semaphore = asyncio.Semaphore(2)
+        # Used to limit the number of sent messages. discord.py has its own internal rate limiting
+        # but the massive concurrency from spawning tons of query-watching tasks seems to break it
+        # a bit. Discord's rate limit is roughly 50 requests/sec so the limit's a bit below that
+        # to account for other bot operations.
+        self.query_msg_rate_limit = AsyncLimiter(35, 1)
 
     async def setup_hook(self):
         await cogs.add_all(self)
@@ -125,7 +131,8 @@ class Rk9(commands.Bot):
             if author:
                 embed.set_author(name=author)
 
-            await channel.send(embed=embed)
+            async with self.query_msg_rate_limit:
+                await channel.send(embed=embed)
             sent += 1
 
         watch.posts_sent += sent
