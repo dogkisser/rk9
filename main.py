@@ -191,6 +191,10 @@ async def info(interaction: discord.Interaction):
     prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid)
     blacklisted = [t.tag for t in BlacklistedTags.select().where(BlacklistedTags.discord_id == uid)]
 
+    total_posts_sent = sum(q.posts_sent for q in queries)
+    total_tags = sum(len(q.tags.split()) for q in queries)
+    total_queries = len(queries)
+
     paginator = commands.Paginator(prefix="", suffix="")
     for query in queries:
         next_check = int((query.last_check + CHECK_INTERVAL).timestamp())
@@ -201,8 +205,11 @@ async def info(interaction: discord.Interaction):
         )
 
     await interaction.response.send_message(
-        f"* Prefix: {f'`{prefix.tags}`' if prefix else prefix}"
-        + f"\n* Blacklisted: {f'||`{" ".join(blacklisted)}`||' if blacklisted else 'None'}",
+        f"* Prefix: {f'`{prefix.tags}`' if prefix else prefix}\n"
+        + f"* Total posts sent: {total_posts_sent}\n"
+        + f"* Total tags watched: {total_tags}\n"
+        + f"* Total queries watched: {total_queries}\n"
+        + f"* Blacklisted: {f'||`{" ".join(blacklisted)}`||' if blacklisted else 'None'}",
         ephemeral=True,
     )
 
