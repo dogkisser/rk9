@@ -50,9 +50,8 @@ class Rk9(commands.Bot):
         self.e6_api_semaphore = asyncio.Semaphore(2)
         # Used to limit the number of sent messages. discord.py has its own internal rate limiting
         # but the massive concurrency from spawning tons of query-watching tasks seems to break it
-        # a bit. Discord's rate limit is roughly 50 requests/sec so the limit's a bit below that
-        # to account for other bot operations.
-        self.query_msg_rate_limit = AsyncLimiter(35, 1)
+        # a bit. May need adjustment.
+        self.query_msg_rate_limit = AsyncLimiter(10, 2)
 
     async def setup_hook(self):
         await cogs.add_all(self)
@@ -74,7 +73,8 @@ class Rk9(commands.Bot):
             await asyncio.sleep(delay)
 
             try:
-                await self._check_query(watch)
+                async with self.query_msg_rate_limit:
+                    await self._check_query(watch)
             except Exception as e:
                 logging.error("Exception in check_query. Trying again 2 minutes.\n", e)
                 await asyncio.sleep(2 * 60)
@@ -131,8 +131,7 @@ class Rk9(commands.Bot):
             if author:
                 embed.set_author(name=author)
 
-            async with self.query_msg_rate_limit:
-                await channel.send(embed=embed)
+            await channel.send(embed=embed)
             sent += 1
 
         watch.posts_sent += sent
