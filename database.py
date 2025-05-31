@@ -10,7 +10,9 @@ dotenv.load_dotenv()
 
 DATA_DIR = os.environ["RK9_DATA_DIR"]
 
-db = SqliteDatabase(f"{DATA_DIR}/rk9.sqlite3", pragmas={"journal_mode": "wal"})
+db = SqliteDatabase(
+    f"{DATA_DIR}/rk9.sqlite3", pragmas={"journal_mode": "wal", "synchronous": "normal"}
+)
 router = Router(db, migrate_dir=Path(__file__).absolute().parent.joinpath("migrations"))
 
 

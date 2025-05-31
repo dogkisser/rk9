@@ -6,3 +6,4 @@
     user; it can be cleared daily (per date:day in the query)
 - "add artist to blacklist" button
 - bookmark feature
+- pretty print numbers
