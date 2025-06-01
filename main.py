@@ -13,6 +13,7 @@ import aiohttp
 import discord
 import discord.ext.commands as commands
 from discord.utils import escape_markdown
+from aiolimiter import AsyncLimiter
 
 dotenv.load_dotenv()
 DEBUG = os.environ.get("RK9_DEBUG") is not None
@@ -43,13 +44,10 @@ class Rk9(commands.Bot):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(command_prefix="/", intents=intents)
         self.db = database.db
-
-        # Used to limit the number of concurrent requests to the e621 API.
-        # e6's rate limit strictly is two requests per second, this is a bit of a hack that should
-        # roughly work. May require fiddling.
-        # possible idea: sleep at the end of the api request while still holding the semaphore for
-        # ~500ms
-        self.e6_api_semaphore = asyncio.Semaphore(2)
+        # > You should make a best effort not to make more than one request per second over a
+        # > sustained period.
+        # - https://e621.net/help/api
+        self.e6_rate_limit = AsyncLimiter(1, 1)
 
     async def setup_hook(self):
         await cogs.add_all(self)
@@ -148,7 +146,7 @@ class Rk9(commands.Bot):
         url = f"https://e621.net/posts.json?tags={watch.tags} {prefix} date:day"
 
         async with (
-            self.e6_api_semaphore,
+            self.e6_rate_limit,
             aiohttp.ClientSession(headers=headers) as session,
             session.get(url) as response,
         ):
