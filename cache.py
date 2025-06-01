@@ -18,3 +18,4 @@ class SeenPosts(BaseModel):
 
 
 db.connect()
+db.create_tables([SeenPosts])

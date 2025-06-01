@@ -1,4 +1,3 @@
-import cache
 import cogs
 import util
 
@@ -45,7 +44,6 @@ def owner_only(func):
 class Rk9(commands.Bot):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(command_prefix="/", intents=intents)
-        cache.db.create_tables([SeenPosts])
         # > You should make a best effort not to make more than one request per second over a
         # > sustained period.
         # - https://e621.net/help/api
