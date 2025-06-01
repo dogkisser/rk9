@@ -17,7 +17,14 @@ class Query(commands.GroupCog, name="query"):
     async def add(
         self, interaction: discord.Interaction, query: str, mode: Literal["raw", "separate"] = "raw"
     ) -> None:
-        """Follow a new query"""
+        """
+        Follow a new query
+
+        Args:
+            query: The tag or list of tags to add to your list of queries
+            mode: raw (default): add as a single query; separate: add add multiple individual tag
+                queries
+        """
         queries = [query] if mode == "raw" else query.split()
         for query in queries:
             try:
@@ -39,7 +46,12 @@ class Query(commands.GroupCog, name="query"):
 
     @app_commands.command()
     async def remove(self, interaction: discord.Interaction, query: str) -> None:
-        """Stop following a query"""
+        """
+        Stop following a query
+
+        Args:
+            query: The query to unfollow
+        """
         existed = (
             WatchedTags.delete()
             .where(WatchedTags.discord_id == interaction.user.id, WatchedTags.tags == query)

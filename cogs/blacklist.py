@@ -11,7 +11,12 @@ class Blacklist(commands.GroupCog, name="blacklist"):
 
     @app_commands.command(name="add")
     async def blacklist_add(self, interaction: discord.Interaction, tags: str) -> None:
-        """Add tags to your blacklist"""
+        """
+        Add tags to your blacklist
+
+        Args:
+            tags: One or more tags to add to your blacklist.
+        """
         data = [{"discord_id": interaction.user.id, "tag": tag} for tag in tags.split(" ")]
         BlacklistedTags.insert_many(data).on_conflict_ignore().execute()
 
@@ -19,7 +24,12 @@ class Blacklist(commands.GroupCog, name="blacklist"):
 
     @app_commands.command(name="remove")
     async def blacklist_remove(self, interaction: discord.Interaction, tags: str) -> None:
-        """Remove tags from your blacklist"""
+        """
+        Remove tags from your blacklist
+
+        Args:
+            tags: One or more tags to remove from your blacklist.
+        """
         tag_list = tags.split(" ")
 
         BlacklistedTags.delete().where(

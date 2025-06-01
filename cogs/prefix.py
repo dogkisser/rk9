@@ -11,7 +11,12 @@ class Prefix(commands.GroupCog, name="prefix"):
 
     @app_commands.command(name="set")
     async def prefix_set(self, interaction: discord.Interaction, query: str):
-        """Update your tag prefix"""
+        """
+        Update your tag prefix
+
+        Args:
+            query: Your updated prefix
+        """
         PrefixTags.replace(discord_id=interaction.user.id, tags=query).execute()
 
         await interaction.response.send_message("Prefix updated", ephemeral=True)
