@@ -12,6 +12,7 @@
 ## Features
 
 - Subscribe to e621 tags, receive DMs when matching posts are uploaded
+- See the most popular posts of the day
 
 ## Running
 
