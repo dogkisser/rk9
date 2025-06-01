@@ -14,7 +14,6 @@ import aiohttp
 import discord
 import discord.ext.commands as commands
 from discord.utils import escape_markdown
-from aiolimiter import AsyncLimiter
 
 dotenv.load_dotenv()
 DEBUG = os.environ.get("RK9_DEBUG") is not None
@@ -48,10 +47,6 @@ class Rk9(commands.Bot):
         # possible idea: sleep at the end of the api request while still holding the semaphore for
         # ~500ms
         self.e6_api_semaphore = asyncio.Semaphore(2)
-        # Used to limit the number of sent messages. discord.py has its own internal rate limiting
-        # but the massive concurrency from spawning tons of query-watching tasks seems to break it
-        # a bit. May need adjustment.
-        self.query_msg_rate_limit = AsyncLimiter(10, 2)
 
     async def setup_hook(self):
         await cogs.add_all(self)
@@ -66,6 +61,8 @@ class Rk9(commands.Bot):
             self.loop.create_task(self.check_query(watch), name=task_name)
 
     async def check_query(self, watch):
+        await self.wait_until_ready()
+
         while True:
             delta_ago = datetime.now(timezone.utc) - CHECK_INTERVAL
 
@@ -73,14 +70,13 @@ class Rk9(commands.Bot):
             await asyncio.sleep(delay)
 
             try:
-                async with self.query_msg_rate_limit:
-                    await self._check_query(watch)
+                await self._check_query(watch)
             except Exception as e:
                 logging.error("Exception in check_query. Trying again 2 minutes.\n", e)
                 await asyncio.sleep(2 * 60)
 
     async def _check_query(self, watch):
-        user = await self.fetch_user(watch.discord_id)
+        user = self.get_user(watch.discord_id)
 
         latest_posts = await self.get_latest_posts(watch)
 
@@ -161,6 +157,7 @@ class Rk9(commands.Bot):
 
 
 intents = discord.Intents.default()
+intents.members = True
 client = Rk9(intents=intents)
 
 
