@@ -1,4 +1,4 @@
-from database import PrefixTags
+from database import db, UserSettings
 
 import discord
 import discord.ext.commands as commands
@@ -17,13 +17,19 @@ class Prefix(commands.GroupCog, name="prefix"):
         Args:
             query: Your updated prefix
         """
-        PrefixTags.replace(discord_id=interaction.user.id, tags=query).execute()
+        with db.atomic():
+            i, _ = UserSettings.get_or_create(discord_id=interaction.user.id)
+            i.prefix_tags = query
+            i.save()
 
         await interaction.response.send_message("Prefix updated", ephemeral=True)
 
     @app_commands.command(name="clear")
     async def prefix_clear(self, interaction: discord.Interaction):
         """Clear your tag prefix"""
-        PrefixTags.delete().where(PrefixTags.discord_id == interaction.user.id).execute()
+        with db.atomic():
+            i, _ = UserSettings.get_or_create(discord_id=interaction.user.id)
+            i.prefix_tags = ""
+            i.save()
 
         await interaction.response.send_message("Prefix updated", ephemeral=True)

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import dotenv
-from peewee import SqliteDatabase, Model, Field, BigIntegerField, TextField
+from peewee import SqliteDatabase, Model, Field, BigIntegerField, TextField, BooleanField
 from peewee_migrate import Router
 
 dotenv.load_dotenv()
@@ -42,9 +42,10 @@ class WatchedTags(BaseModel):
         indexes = ((("discord_id", "tags"), True),)
 
 
-class PrefixTags(BaseModel):
+class UserSettings(BaseModel):
     discord_id = BigIntegerField(index=True, unique=True)
-    tags = TextField()
+    prefix_tags = TextField(default=True)
+    subscribed_to_popular = BooleanField(default=False)
 
 
 class BlacklistedTags(BaseModel):

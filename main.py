@@ -1,10 +1,11 @@
 import database
 import cogs
+import util
 
 import os
 import asyncio
 import logging
-from database import WatchedTags, PrefixTags, BlacklistedTags
+from database import WatchedTags, UserSettings, BlacklistedTags
 from functools import wraps
 from datetime import datetime, timezone, timedelta
 
@@ -78,7 +79,6 @@ class Rk9(commands.Bot):
 
     async def _check_query(self, watch):
         user = self.get_user(watch.discord_id)
-
         latest_posts = await self.get_latest_posts(watch)
 
         blacklisted_tags = set(
@@ -98,35 +98,11 @@ class Rk9(commands.Bot):
             if watch.last_check > posted:
                 continue
 
-            author = ", ".join(post["tags"]["artist"])
-
             if not (channel := user.dm_channel):
                 channel = await user.create_dm()
 
-            # post['file']['url'] is null if the post is on the global blacklist, but all the
-            # other information is intact. we reconstruct the url ourself to side-step.
-            img_hash = post["file"]["md5"]
-            # try to use the sample if it exists b/c its always a jpg; discord can't embed videos
-            path = "/data/sample/" if post["sample"]["has"] else "/data/"
-            ext = "jpg" if post["sample"]["has"] else post["file"]["ext"]
-            url = f"https://static1.e621.net{path}{img_hash[0:2]}/{img_hash[2:4]}/{img_hash}.{ext}"
-            description = post["description"][:150] + (post["description"][150:] and "..")
-            embed = discord.Embed(
-                title=f"#{post['id']}",
-                url=f"https://e621.net/posts/{post['id']}",
-                description=escape_markdown(description),
-                colour=0x1F2F56,
-                timestamp=posted,
-            )
+            embed = util.build_embed_from_post(post)
             embed.add_field(name="Matched query", value=f"`{watch.tags}`", inline=False)
-            embed.set_image(url=url)
-            embed.set_footer(text="/rk9/ • 👎 to remove")
-
-            if post["file"]["ext"] in ["webm", "mp4"]:
-                embed.add_field(name=":play_pause: Animated", value="", inline=False)
-
-            if author:
-                embed.set_author(name=author)
 
             await channel.send(embed=embed)
             sent += 1
@@ -137,8 +113,8 @@ class Rk9(commands.Bot):
 
     async def get_latest_posts(self, watch):
         prefix = (
-            p.tags
-            if (p := PrefixTags.get_or_none(PrefixTags.discord_id == watch.discord_id))
+            p.prefix_tags
+            if (p := UserSettings.get_or_none(UserSettings.discord_id == watch.discord_id))
             else ""
         )
 
@@ -185,7 +161,7 @@ async def info(interaction: discord.Interaction):
     queries = WatchedTags.select(
         WatchedTags.tags, WatchedTags.posts_sent, WatchedTags.last_check
     ).where(WatchedTags.discord_id == interaction.user.id)
-    prefix = PrefixTags.get_or_none(PrefixTags.discord_id == uid)
+    settings = UserSettings.get_or_none(UserSettings.discord_id == uid)
     blacklisted = [t.tag for t in BlacklistedTags.select().where(BlacklistedTags.discord_id == uid)]
 
     total_posts_sent = sum(q.posts_sent for q in queries)
@@ -202,10 +178,11 @@ async def info(interaction: discord.Interaction):
         )
 
     await interaction.response.send_message(
-        f"* Prefix: {f'`{prefix.tags}`' if prefix else prefix}\n"
+        f"* Prefix: {f'`{settings.prefix_tags}`' if settings else settings}\n"
         + f"* Total posts sent: {total_posts_sent}\n"
         + f"* Total tags watched: {total_tags}\n"
         + f"* Total queries watched: {total_queries}\n"
+        + f"* Subscribed to popular: {settings.subscribed_to_popular if settings else 'False'}"
         + f"* Blacklisted: {f'||`{" ".join(blacklisted)}`||' if blacklisted else 'None'}",
         ephemeral=True,
     )
