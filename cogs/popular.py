@@ -28,8 +28,16 @@ class Popular(commands.GroupCog, name="popular"):
 
         await interaction.response.send_message("Done", ephemeral=True)
 
+    @app_commands.command()
+    async def eta(self, interaction: discord.Interaction) -> None:
+        """Show when popular posts are going to be sent next."""
+        now = datetime.datetime.now(tz=datetime.timezone.utc)
+        target = int(now.replace(hour=23, minute=30, second=0, microsecond=0).timestamp())
+
+        await interaction.response.send_message(f"<t:{target}:R>", ephemeral=True)
+
     @tasks.loop(time=datetime.time(hour=23, minute=30))
-    async def check_popular(self):
+    async def check_popular(self) -> None:
         await self.bot.wait_until_ready()
 
         headers = {"user-agent": "github.com/dogkisser/rk9"}

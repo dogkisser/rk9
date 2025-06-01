@@ -13,7 +13,6 @@ import dotenv
 import aiohttp
 import discord
 import discord.ext.commands as commands
-from discord.utils import escape_markdown
 from aiolimiter import AsyncLimiter
 
 dotenv.load_dotenv()
