@@ -182,7 +182,7 @@ async def info(interaction: discord.Interaction):
         + f"* Total posts sent: {total_posts_sent}\n"
         + f"* Total tags watched: {total_tags}\n"
         + f"* Total queries watched: {total_queries}\n"
-        + f"* Subscribed to popular: {settings.subscribed_to_popular if settings else 'False'}"
+        + f"* Subscribed to popular: {settings.subscribed_to_popular if settings else 'False'}\n"
         + f"* Blacklisted: {f'||`{" ".join(blacklisted)}`||' if blacklisted else 'None'}",
         ephemeral=True,
     )
