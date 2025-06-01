@@ -5,7 +5,6 @@ import os
 import asyncio
 import logging
 from database import WatchedTags, PrefixTags, BlacklistedTags
-from util import flatten
 from functools import wraps
 from datetime import datetime, timezone, timedelta
 
@@ -22,6 +21,10 @@ DEBUG_GUILD = discord.Object(id=id) if (id := os.environ.get("RK9_DEBUG_GUILD"))
 OWNER_ID = os.environ.get("RK9_OWNER_ID")
 
 discord.utils.setup_logging(level=logging.DEBUG if DEBUG else logging.INFO)
+
+
+def flatten(xss):
+    return [x for xs in xss for x in xs]
 
 
 def owner_only(func):
