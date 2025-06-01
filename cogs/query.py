@@ -1,7 +1,7 @@
 from database import WatchedTags
-from util import normalise_tags, TagError
 
 from datetime import datetime, timezone
+from typing import Literal
 
 import peewee
 import discord
@@ -14,28 +14,28 @@ class Query(commands.GroupCog, name="query"):
         self.bot = bot
 
     @app_commands.command()
-    async def add(self, interaction: discord.Interaction, query: str) -> None:
+    async def add(
+        self, interaction: discord.Interaction, query: str, mode: Literal["raw", "separate"] = "raw"
+    ) -> None:
         """Follow a new query"""
-        try:
-            normalised_query = normalise_tags(query)
+        queries = [query] if mode == "raw" else query.split()
+        for query in queries:
+            try:
+                watched = WatchedTags(
+                    discord_id=interaction.user.id,
+                    tags=query,
+                    last_check=datetime.now(timezone.utc),
+                )
+                watched.save()
 
-            watched = WatchedTags(
-                discord_id=interaction.user.id,
-                tags=normalised_query,
-                last_check=datetime.now(timezone.utc),
-            )
-            watched.save()
+                task_name = f"{watched.discord_id}:{watched.tags}"
+                self.bot.loop.create_task(self.bot.check_query(watched), name=task_name)
+            except peewee.IntegrityError:
+                # UNIQUE(discord_id, last_check)
+                # just ignore it
+                continue
 
-            task_name = f"{watched.discord_id}:{watched.tags}"
-            self.bot.loop.create_task(self.bot.check_query(watched), name=task_name)
-
-            await interaction.response.send_message("Added", ephemeral=True)
-        except TagError as e:
-            await interaction.response.send_message(e, ephemeral=True)
-        except peewee.IntegrityError:
-            await interaction.response.send_message(
-                "You're already watching an identical query", ephemeral=True
-            )
+        await interaction.response.send_message("Done", ephemeral=True)
 
     @app_commands.command()
     async def remove(self, interaction: discord.Interaction, query: str) -> None:

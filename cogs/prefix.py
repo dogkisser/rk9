@@ -1,5 +1,4 @@
 from database import PrefixTags
-from util import normalise_tags
 
 import discord
 import discord.ext.commands as commands
@@ -13,7 +12,7 @@ class Prefix(commands.GroupCog, name="prefix"):
     @app_commands.command(name="set")
     async def prefix_set(self, interaction: discord.Interaction, query: str):
         """Update your tag prefix"""
-        PrefixTags.replace(discord_id=interaction.user.id, tags=normalise_tags(query)).execute()
+        PrefixTags.replace(discord_id=interaction.user.id, tags=query).execute()
 
         await interaction.response.send_message("Prefix updated", ephemeral=True)
 
