@@ -23,7 +23,7 @@ class Blacklist(commands.GroupCog, name="blacklist"):
         tag_list = tags.split(" ")
 
         BlacklistedTags.delete().where(
-            BlacklistedTags.discord_id == interaction.user.id & BlacklistedTags.tag << tag_list
+            BlacklistedTags.discord_id == interaction.user.id, BlacklistedTags.tag << tag_list
         ).execute()
 
         await interaction.response.send_message("Done", ephemeral=True)
