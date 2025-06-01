@@ -1,10 +1,11 @@
-import database
+import cache
 import cogs
 import util
 
 import os
 import asyncio
 import logging
+from cache import SeenPosts
 from database import WatchedTags, UserSettings, BlacklistedTags
 from functools import wraps
 from datetime import datetime, timezone, timedelta
@@ -13,6 +14,7 @@ import dotenv
 import aiohttp
 import discord
 import discord.ext.commands as commands
+import discord.ext.tasks as tasks
 from aiolimiter import AsyncLimiter
 
 dotenv.load_dotenv()
@@ -43,7 +45,7 @@ def owner_only(func):
 class Rk9(commands.Bot):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(command_prefix="/", intents=intents)
-        self.db = database.db
+        cache.db.create_tables([SeenPosts])
         # > You should make a best effort not to make more than one request per second over a
         # > sustained period.
         # - https://e621.net/help/api
@@ -88,6 +90,7 @@ class Rk9(commands.Bot):
         )
 
         sent = 0
+        seen = []
         for post in latest_posts:
             flat_tags = set(flatten(post["tags"].values()))
             if not flat_tags.isdisjoint(blacklisted_tags):
@@ -95,6 +98,11 @@ class Rk9(commands.Bot):
 
             posted = datetime.fromisoformat(post["created_at"])
             if watch.last_check > posted:
+                continue
+
+            if SeenPosts.get_or_none(
+                SeenPosts.discord_id == watch.discord_id, SeenPosts.post_id == post["id"]
+            ):
                 continue
 
             if not (channel := user.dm_channel):
@@ -105,6 +113,10 @@ class Rk9(commands.Bot):
 
             await channel.send(embed=embed)
             sent += 1
+
+            seen.append({"discord_id": watch.discord_id, "post_id": post["id"]})
+
+        SeenPosts.insert_many(seen).on_conflict_ignore().execute()
 
         watch.posts_sent += sent
         watch.last_check = datetime.now(timezone.utc)
@@ -118,7 +130,7 @@ class Rk9(commands.Bot):
         )
 
         headers = {"user-agent": "github.com/dogkisser/rk9"}
-        url = f"https://e621.net/posts.json?tags={watch.tags} {prefix} date:day"
+        url = f"https://e621.net/posts.json?tags={watch.tags} {prefix} limit:30"
 
         async with (
             self.e6_rate_limit,
@@ -130,6 +142,10 @@ class Rk9(commands.Bot):
 
             response = await response.json()
             return response["posts"]
+
+    @tasks.loop(hours=24)
+    async def clear_seen_posts(self) -> None:
+        SeenPosts.delete().execute()
 
 
 intents = discord.Intents.default()
